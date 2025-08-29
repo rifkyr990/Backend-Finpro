@@ -1,14 +1,14 @@
-import nodemailer from "nodemailer";
 
-export async function sendVerificationEmail(email: string, token: string, role: string) {
-    const verificationUrl = `https://your-app.com/verify-email?token=${token}`;
-    const subject = `Verifikasi Email untuk ${role}`;
-    const html = `
-        <p>Silahkan klik link berikut untuk verifikasi email dan set password Anda:</p>
-        <a href="${verificationUrl}">${verificationUrl}</a>
-        <p>Link ini hanya berlaku 1 jam setelah pembuatan.</p>
-    `;
+import nodemailer from 'nodemailer';
 
+interface SendEmailParams {
+    to: string;
+    subject: string;
+    text: string;
+    html: string;
+}
+
+export const sendEmail = async ({ to, subject, text, html }: SendEmailParams) => {
     const transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
@@ -17,14 +17,19 @@ export async function sendVerificationEmail(email: string, token: string, role: 
         },
     });
 
+    const mailOptions = {
+        from: process.env.MAIL_SENDER, // Alamat pengirim
+        to,
+        subject,
+        text,
+        html,
+    };
+
     try {
-        await transporter.sendMail({
-            from: `"YourApp" <${process.env.MAIL_SENDER}>`,
-            to: email,
-            subject,
-            html,
-        });
+        await transporter.sendMail(mailOptions);
+        console.log(`Email sent to ${to}`);
     } catch (error) {
-        console.error("Error sending verification email:", error);
+        console.error('Error sending email:', error);
+        throw new Error('Failed to send email');
     }
-}
+};

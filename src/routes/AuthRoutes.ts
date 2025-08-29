@@ -15,6 +15,9 @@ class AuthRoutes {
         this.router.post("/register", AuthController.register);
         this.router.post("/login", AuthController.login);
         this.router.post("/verify-email", AuthController.verifyEmail);
+        this.router.post("/request-reset", AuthController.requestResetPassword);
+        this.router.post("/reset-password", AuthController.resetPassword);
+
 
         // 🔐 Protected route: hanya CUSTOMER dan TENANT yang boleh akses
         this.router.get("/profile",authMiddleware(),authorizeRoles("CUSTOMER", "TENANT"),AuthController.getProfile);

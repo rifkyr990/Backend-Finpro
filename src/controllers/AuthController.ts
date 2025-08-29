@@ -48,6 +48,24 @@ class AuthController {
         return ApiResponse.success(res, { token, user }, "Login berhasil");
     });
 
+    // Request untuk reset password
+    public static requestResetPassword = asyncHandler(async (req: Request, res: Response) => {
+        const { email } = req.body;
+        if (!email) return ApiResponse.error(res, "Email wajib diisi", 400);
+
+        await AuthService.requestPasswordReset(email);
+        return ApiResponse.success(res, null, "Token reset sudah dikirim ke email");
+    });
+
+    public static resetPassword = asyncHandler(async (req: Request, res: Response) => {
+        const { token, new_password } = req.body;
+        if (!token || !new_password) return ApiResponse.error(res, "Token wajid diisi dulu", 400);
+
+        await AuthService.resetPasswordWithToken(token, new_password);
+
+        return ApiResponse.success(res, null, "Password berhasil direset");
+    })
+
     // AMBIL PROFIL USER
     public static getProfile = asyncHandler(async (req: Request, res: Response) => {
         const user = await prisma.user.findUnique({ where: { id: req.user.id } });
