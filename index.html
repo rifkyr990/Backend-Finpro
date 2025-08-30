@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Google Login Test</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script>
+        function handleCredentialResponse(response) {
+        console.log("Google ID Token:", response.credential);
+
+        fetch("http://localhost:5000/api/auth/google-login", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                idToken: response.credential,
+            }),
+        })
+            .then((res) => res.json())
+            .then((data) => {
+                console.log("Login response:", data);
+                document.getElementById("result").innerText = JSON.stringify(data, null, 2);
+            })
+            .catch((err) => {
+            console.error("Login failed:", err);
+            document.getElementById("result").innerText = "Login failed: " + err.message;
+            });
+        }
+
+        window.onload = function () {
+        google.accounts.id.initialize({
+            client_id: "742014039719-d9ph1sbifha0m2r0jq8iu94uo5t7hm3j.apps.googleusercontent.com",
+            callback: handleCredentialResponse,
+        });
+
+        google.accounts.id.renderButton(
+            document.getElementById("googleBtn"),
+            { theme: "outline", size: "large" }
+        );
+        };
+    </script>
+    </head>
+    <body>
+        <h2>Test Google Login</h2>
+        <div id="googleBtn"></div>
+        <pre id="result" style="margin-top: 20px; color: green;"></pre>
+    </body>
+</html>

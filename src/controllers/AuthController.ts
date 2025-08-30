@@ -5,6 +5,8 @@ import jwt from "jsonwebtoken";
 import { ApiResponse } from "../utils/ApiResponse";
 import { asyncHandler } from "../utils/AsyncHandler";
 import AuthService from "../services/AuthService";
+import GoogleAuthService from "../services/GoogleAuthService";
+import FacebookAuthService from "../services/FacebookAuthService";
 
 class AuthController {
     // REGISTRASI USER/TENANT TANPA PASSWORD
@@ -59,7 +61,7 @@ class AuthController {
 
     public static resetPassword = asyncHandler(async (req: Request, res: Response) => {
         const { token, new_password } = req.body;
-        if (!token || !new_password) return ApiResponse.error(res, "Token wajid diisi dulu", 400);
+        if (!token || !new_password) return ApiResponse.error(res, "Token wajid diisi dulu, kalo nggak ada beli", 400);
 
         await AuthService.resetPasswordWithToken(token, new_password);
 
@@ -74,6 +76,30 @@ class AuthController {
         }
 
         return ApiResponse.success(res, user, "Profile fetched successfully");
+    });
+
+    public static loginWithGoogle = asyncHandler(async (req: Request, res: Response) => {
+        const { idToken } = req.body;
+        console.log("Body dari request:", req.body);
+
+        if (!idToken) {
+            return ApiResponse.error(res, "Token Google nggak ditemukan", 400);
+        }
+        
+        const { user, token } = await GoogleAuthService.loginWithGoogle(idToken);
+
+        return ApiResponse.success(res, { token, user }, "Login dengan google berhasil");
+    });
+
+    public static loginWithFacebook = asyncHandler(async (req: Request, res: Response) => {
+        const { accessToken, userID } = req.body;
+        if (!accessToken || !userID) {
+            return ApiResponse.error(res, 'Token atau userID Facebook tidak lengkap', 400);
+        }
+
+        const { user, token } = await FacebookAuthService.loginWithFacebook(accessToken, userID);
+
+        return ApiResponse.success(res, { token, user }, 'Login via Facebook berhasil');
     });
 }
 
