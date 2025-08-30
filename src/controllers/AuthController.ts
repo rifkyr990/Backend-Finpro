@@ -1,12 +1,9 @@
 import { Request, Response } from "express";
 import prisma from "../config/prisma";
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
 import { ApiResponse } from "../utils/ApiResponse";
 import { asyncHandler } from "../utils/AsyncHandler";
 import AuthService from "../services/AuthService";
 import GoogleAuthService from "../services/GoogleAuthService";
-import FacebookAuthService from "../services/FacebookAuthService";
 
 class AuthController {
     // REGISTRASI USER/TENANT TANPA PASSWORD
@@ -50,6 +47,14 @@ class AuthController {
         return ApiResponse.success(res, { token, user }, "Login berhasil");
     });
 
+    // KIRIM ULANG VERIFIKASI EMAIL
+    public static resendVerification = asyncHandler(async (req: Request, res: Response) => {
+        const { email } = req.body;
+        const result = await AuthService.resendVerification(email);
+
+        return ApiResponse.success(res, result, "Verifikasi email berhasil dikirim ulang");
+    })
+
     // Request untuk reset password
     public static requestResetPassword = asyncHandler(async (req: Request, res: Response) => {
         const { email } = req.body;
@@ -78,6 +83,7 @@ class AuthController {
         return ApiResponse.success(res, user, "Profile fetched successfully");
     });
 
+    // Login menggunakan akun google
     public static loginWithGoogle = asyncHandler(async (req: Request, res: Response) => {
         const { idToken } = req.body;
         console.log("Body dari request:", req.body);
@@ -89,17 +95,6 @@ class AuthController {
         const { user, token } = await GoogleAuthService.loginWithGoogle(idToken);
 
         return ApiResponse.success(res, { token, user }, "Login dengan google berhasil");
-    });
-
-    public static loginWithFacebook = asyncHandler(async (req: Request, res: Response) => {
-        const { accessToken, userID } = req.body;
-        if (!accessToken || !userID) {
-            return ApiResponse.error(res, 'Token atau userID Facebook tidak lengkap', 400);
-        }
-
-        const { user, token } = await FacebookAuthService.loginWithFacebook(accessToken, userID);
-
-        return ApiResponse.success(res, { token, user }, 'Login via Facebook berhasil');
     });
 }
 
