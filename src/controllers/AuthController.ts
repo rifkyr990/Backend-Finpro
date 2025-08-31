@@ -4,6 +4,10 @@ import { ApiResponse } from "../utils/ApiResponse";
 import { asyncHandler } from "../utils/AsyncHandler";
 import AuthService from "../services/AuthService";
 import GoogleAuthService from "../services/GoogleAuthService";
+import { resolve } from "path";
+import { rejects } from "assert";
+import cloudinary from "../config/cloudinary";
+import { error } from "console";
 
 class AuthController {
     // REGISTRASI USER/TENANT TANPA PASSWORD
@@ -96,6 +100,31 @@ class AuthController {
 
         return ApiResponse.success(res, { token, user }, "Login dengan google berhasil");
     });
+
+
+    public static uploadProfilePicture = asyncHandler(async (req: Request, res: Response) => {
+        if (!req.file) return ApiResponse.error(res, "File tidak ditemukan", 400);
+
+        const userId = (req as any).user?.id;
+        if (!userId) return ApiResponse.error(res, "Unauthorized", 401);
+
+        const result = await new Promise<any>((resolve, reject) => {
+            cloudinary.uploader.upload_stream({
+                folder: "profile_pictures",
+                resource_type: "image",
+            }, (error, uploaded) => {
+                if (error) reject(error);
+                else resolve(uploaded);
+            }).end(req.file?.buffer);
+        });
+
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: { image_url: result.secure_url },
+        });
+
+        return ApiResponse.success(res, updatedUser, "Profile berhasil diupdate")
+    })
 }
 
 export default AuthController;
