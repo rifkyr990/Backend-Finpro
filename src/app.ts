@@ -1,14 +1,15 @@
+// src/app.ts
 import express, { Application } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import ErrorMiddleware from "./middlewares/ErrorMiddleware";
-import UserRoutes from "./routes/UserRoutes";
+import AuthRoutes from "./routes/AuthRoutes";
+import { ApiResponse } from "./utils/ApiResponse";
 
 dotenv.config();
 
 class App {
-    public app: Application;
-    public port: number;
+    private app: Application;
+    private port: number;
 
     constructor(port: number) {
         this.app = express();
@@ -16,28 +17,34 @@ class App {
 
         this.initializeMiddlewares();
         this.initializeRoutes();
-        this.initializeErrorHandling();
+        this.initializeErrorHandler();
     }
 
     private initializeMiddlewares() {
         this.app.use(cors());
         this.app.use(express.json());
+        this.app.use(express.urlencoded({ extended: true }));
     }
 
     private initializeRoutes() {
+        this.app.use("/api/auth", AuthRoutes);
         this.app.get("/", (req, res) => {
-            res.send("🚀 Server is running!");
+            return ApiResponse.success(res, null, "API is running 🚀");
         });
-        this.app.use("/api/users", UserRoutes);
     }
 
-    private initializeErrorHandling() {
-        this.app.use(ErrorMiddleware.handle);
+    private initializeErrorHandler() {
+        this.app.use(
+        (err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+            console.error("Error Middleware:", err);
+            return ApiResponse.error(res, err.message || "Internal Server Error", 500);
+        }
+        );
     }
 
     public listen() {
         this.app.listen(this.port, () => {
-            console.log(`🚀 Server running on http://localhost:${this.port}`)
+        console.log(`🚀 Server running on http://localhost:${this.port}`);
         });
     }
 }
