@@ -123,6 +123,19 @@ model Product {
 
   cartItems  CartItem[]
   orderItems OrderItem[]
+  stocks     ProductStocks[]
+}
+
+model ProductStocks {
+  id             Int @id @default(autoincrement())
+  store_id       Int
+  product_id     Int
+  stock_quantity Int @default(0)
+
+  store   Store   @relation(fields: [store_id], references: [id])
+  product Product @relation(fields: [product_id], references: [id])
+
+  @@unique([store_id, product_id])
 }
 
 model Store {
@@ -140,6 +153,7 @@ model Store {
 
   orders Order[]
   cart   Cart[]
+  stocks ProductStocks[]
 }
 
 model Cart {
