@@ -25,7 +25,7 @@ class AuthRoutes {
 
 
         // 🔐 Protected route: hanya CUSTOMER dan TENANT yang boleh akses
-        this.router.get("/profile",authMiddleware(),authorizeRoles("CUSTOMER", "TENANT"),AuthController.getProfile);
+        // this.router.get("/profile",authMiddleware(),authorizeRoles("CUSTOMER", "TENANT"),AuthController.getProfile);
     }
 }
 

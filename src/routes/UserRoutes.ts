@@ -12,9 +12,11 @@ class UserRoutes {
     }
 
     private initializeRoutes() {
-        this.router.post("/upload-profile", authMiddleware(),upload.single("image"), UserController.uploadProfilePicture);
-        this.router.put("/update-profile", authMiddleware(),upload.single("image"), UserController.updateProfilePicture);
-        this.router.delete("/delete-profile-picture", authMiddleware(), UserController.deleteProfilePicture);
+        this.router.get("/profile", authMiddleware(), UserController.getProfile);
+        this.router.put("/profile", authMiddleware(), UserController.updateProfile);
+        this.router.post("/resend-verification",authMiddleware(), UserController.resendVerification);
+        this.router.put("/change-password", authMiddleware(), UserController.changePassword);
+        this.router.put("/profile-picture", authMiddleware(),upload.single("image"), UserController.updateProfilePicture);
     }
 }
 
