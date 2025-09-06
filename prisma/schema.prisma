@@ -124,6 +124,16 @@ model Product {
   cartItems  CartItem[]
   orderItems OrderItem[]
   stocks     ProductStocks[]
+  images     ProductImage[]
+}
+
+model ProductImage {
+  id         Int      @id @default(autoincrement())
+  product_id Int
+  image_url  String
+  created_at DateTime @default(now())
+
+  product Product @relation(fields: [product_id], references: [id], onDelete: Cascade)
 }
 
 model ProductStocks {

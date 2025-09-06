@@ -10,7 +10,7 @@ class CartController {
         where: { user_id: userId },
         include: {
           cartItems: {
-            include: { product: true },
+            include: { product: { include: { images: { take: 1 } } } },
           },
           store: true,
         },
@@ -20,7 +20,23 @@ class CartController {
         return res.status(404).json({ message: "Cart not found" });
       }
 
-      res.json(cart);
+      const formattedCart = {
+        ...cart,
+        cartItems: cart.cartItems.map((item) => ({
+          ...item,
+          product: {
+            ...item.product,
+            description: item.product.description || "",
+            imageUrl:
+              item.product.images[0]?.image_url ||
+              "https://images.unsplash.com/photo-1567306226416-28f0efdc88ce?w=500&q=80",
+          },
+        })),
+      };
+
+      console.log(formattedCart);
+
+      res.json(formattedCart);
     } catch (error) {
       console.error("Error fetching cart:", error);
       res.status(500).json({ error: "Failed to fetch cart" });
