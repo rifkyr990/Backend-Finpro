@@ -43,9 +43,9 @@ class UserController {
         const { oldPassword, newPassword } = req.body;
         if (!oldPassword || !newPassword) {
             return ApiResponse.error(res, "Password lama & baru wajib diisi dulu gaes", 400);
-        }
-
+        }   
         await UserService.changePassword(userId, oldPassword, newPassword);
+        
         return ApiResponse.success(res, null, "Password berhasil dirubah");
     });
 
