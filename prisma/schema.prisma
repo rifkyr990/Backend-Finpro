@@ -102,19 +102,25 @@ model UserProfile {
 }
 
 model UserAddress {
-  id           Int     @id @default(autoincrement())
+  id           Int      @id @default(autoincrement())
   user_id      String
-  label        String
-  address_line String
-  city         String
+  name         String          // Nama penerima
+  phone        String          // Nomor telepon
+  label        String          // RUMAH | KANTOR
   province     String
+  city         String
+  district     String          // Kecamatan
+  subdistrict  String?
   postal_code  String
+  street       String          // Nama jalan
+  detail       String?         // Detail alamat (opsional)
   latitude     Float?
   longitude    Float?
   is_primary   Boolean @default(false)
 
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
+<<<<<<< HEAD
 
 model Product {
   id          Int      @id @default(autoincrement())
@@ -240,3 +246,5 @@ model PaymentProof {
 
   order Order @relation(fields: [order_id], references: [id], onDelete: Cascade)
 }
+=======
+>>>>>>> e6745066593320b9b756d99f1d48883c500cd437

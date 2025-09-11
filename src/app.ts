@@ -4,6 +4,8 @@ import cors from "cors";
 import dotenv from "dotenv";
 import AuthRoutes from "./routes/AuthRoutes";
 import UserRoutes from "./routes/UserRoutes";
+import UserAddressRoutes from "./routes/UserAddressRoutes";
+import RajaOngkirRoutes from "./routes/RajaOngkirRoutes";
 import { ApiResponse } from "./utils/ApiResponse";
 import CartRoutes from "./routes/CartRoutes";
 
@@ -32,6 +34,8 @@ class App {
     private initializeRoutes() {
         this.app.use("/api/auth", AuthRoutes);
         this.app.use("/api/user", UserRoutes);
+        this.app.use("/api/address", UserAddressRoutes);
+        this.app.use("/api/rajaongkir", RajaOngkirRoutes)
         this.app.get("/", (req, res) => {
             return ApiResponse.success(res, null, "API is running 🚀");
         });
@@ -46,6 +50,7 @@ class App {
   }
 >>>>>>> 2d1cde64057eeb999663f8a07b44c8e3ec059493
 
+<<<<<<< HEAD
   private initializeErrorHandler() {
     this.app.use(
       (
@@ -59,6 +64,14 @@ class App {
           res,
           err.message || "Internal Server Error",
           500
+=======
+    private initializeErrorHandler() {
+        this.app.use(
+            (err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+                console.error("Error Middleware:", err);
+                return ApiResponse.error(res, err.message || "Internal Server Error", 500);
+            }
+>>>>>>> e6745066593320b9b756d99f1d48883c500cd437
         );
       }
     );
