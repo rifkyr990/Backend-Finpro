@@ -8,6 +8,7 @@ import UserAddressRoutes from "./routes/UserAddressRoutes";
 import RajaOngkirRoutes from "./routes/RajaOngkirRoutes";
 import { ApiResponse } from "./utils/ApiResponse";
 import CartRoutes from "./routes/CartRoutes";
+import StoreRoutes from "./routes/StoreRoutes";
 
 dotenv.config();
 
@@ -30,27 +31,18 @@ class App {
     this.app.use(express.urlencoded({ extended: true }));
   }
 
-<<<<<<< HEAD
-    private initializeRoutes() {
-        this.app.use("/api/auth", AuthRoutes);
-        this.app.use("/api/user", UserRoutes);
-        this.app.use("/api/address", UserAddressRoutes);
-        this.app.use("/api/rajaongkir", RajaOngkirRoutes)
-        this.app.get("/", (req, res) => {
-            return ApiResponse.success(res, null, "API is running 🚀");
-        });
-    }
-=======
   private initializeRoutes() {
     this.app.use("/api/auth", AuthRoutes);
     this.app.use("/api/cart", CartRoutes);
+    // arco-start
+    this.app.use("/api/user", UserRoutes);
+    this.app.use("/api/store", StoreRoutes);
+    // arco-end
     this.app.get("/", (req, res) => {
       return ApiResponse.success(res, null, "API is running 🚀");
     });
   }
->>>>>>> 2d1cde64057eeb999663f8a07b44c8e3ec059493
 
-<<<<<<< HEAD
   private initializeErrorHandler() {
     this.app.use(
       (
@@ -63,20 +55,11 @@ class App {
         return ApiResponse.error(
           res,
           err.message || "Internal Server Error",
-          500
-=======
-    private initializeErrorHandler() {
-        this.app.use(
-            (err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-                console.error("Error Middleware:", err);
-                return ApiResponse.error(res, err.message || "Internal Server Error", 500);
-            }
->>>>>>> e6745066593320b9b756d99f1d48883c500cd437
+          50
         );
       }
     );
   }
-
   public listen() {
     this.app.listen(this.port, () => {
       console.log(`🚀 Server running on http://localhost:${this.port}`);
