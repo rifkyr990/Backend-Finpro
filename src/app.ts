@@ -6,6 +6,7 @@ import AuthRoutes from "./routes/AuthRoutes";
 import UserRoutes from "./routes/UserRoutes";
 import { ApiResponse } from "./utils/ApiResponse";
 import CartRoutes from "./routes/CartRoutes";
+import StoreRoutes from "./routes/StoreRoutes";
 
 dotenv.config();
 
@@ -28,23 +29,17 @@ class App {
     this.app.use(express.urlencoded({ extended: true }));
   }
 
-<<<<<<< HEAD
-    private initializeRoutes() {
-        this.app.use("/api/auth", AuthRoutes);
-        this.app.use("/api/user", UserRoutes);
-        this.app.get("/", (req, res) => {
-            return ApiResponse.success(res, null, "API is running 🚀");
-        });
-    }
-=======
   private initializeRoutes() {
     this.app.use("/api/auth", AuthRoutes);
     this.app.use("/api/cart", CartRoutes);
+    // arco-start
+    this.app.use("/api/user", UserRoutes);
+    this.app.use("/api/store", StoreRoutes);
+    // arco-end
     this.app.get("/", (req, res) => {
       return ApiResponse.success(res, null, "API is running 🚀");
     });
   }
->>>>>>> 2d1cde64057eeb999663f8a07b44c8e3ec059493
 
   private initializeErrorHandler() {
     this.app.use(
