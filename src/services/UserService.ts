@@ -43,37 +43,44 @@ class UserService {
     }
     
     public async updateProfile(userId: string, data: any) {
-        if (!data) {
-            throw new Error("Request body kosong, pastikan mengirim data profile");
-        }
-
-        const { first_name, last_name, bio, phone, date_of_birth, email } = data;
-
-        const updateData: any = {
-            first_name,
-            last_name,
-            phone,
-            profile: {
-                upsert: {
-                    create: { bio, date_of_birth },
-                    update: { bio, date_of_birth },
-                },
-            },
-        };
-
-        if (email) {
-            updateData.email = email;
-            updateData.is_verified = false;
-        }
-
-        const updateUser = await prisma.user.update({
-            where: { id: userId },
-            data: updateData,
-            include: { profile: true },
-        });
-
-        return updateUser;
+    if (!data) {
+        throw new Error("Request body kosong, pastikan mengirim data profile");
     }
+
+    const { first_name, last_name, bio, phone, date_of_birth, email } = data;
+
+    // Ambil email lama user
+    const existingUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true },
+    });
+
+    const updateData: any = {
+        first_name,
+        last_name,
+        phone,
+        profile: {
+            upsert: {
+                create: { bio, date_of_birth },
+                update: { bio, date_of_birth },
+            },
+        },
+    };
+
+    if (email && email !== existingUser?.email) {
+        updateData.email = email;
+        updateData.is_verified = false;
+    }
+
+    const updateUser = await prisma.user.update({
+        where: { id: userId },
+        data: updateData,
+        include: { profile: true },
+    });
+
+    return updateUser;
+}
+
 
 
     public async changePassword(userId: string, oldPassword: string, newPassword:string) {
