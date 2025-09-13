@@ -50,7 +50,7 @@ model User {
   addresses           UserAddress[]
   cart                Cart?
   orders              Order[]
-  store Store? @relation(fields: [store_id], references: [id])
+  store Store? @relation(fields: [store_id], references: [id],onDelete: SetNull)
 }
 
 model SocialLogin {
@@ -99,7 +99,7 @@ model UserAddress {
   label        String          // RUMAH | KANTOR
   province     String
   city         String
-  district     String          // Kecamatan
+  district     String?          // Kecamatan
   subdistrict  String?
   postal_code  String
   street       String          // Nama jalan
@@ -110,14 +110,13 @@ model UserAddress {
 
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
-<<<<<<< HEAD
 
 model Product {
   id          Int      @id @default(autoincrement())
-  category_id Int?
+  category_id Int
   name        String
   description String?
-  price       Decimal
+  price       String
   is_active   Boolean  @default(true)
   created_at  DateTime @default(now())
 
@@ -125,6 +124,7 @@ model Product {
   orderItems OrderItem[]
   stocks     ProductStocks[]
   images     ProductImage[]
+  category ProductCategory @relation(fields: [category_id],references: [id], onDelete: Cascade)
 }
 
 model ProductImage {
@@ -142,18 +142,24 @@ model ProductStocks {
   product_id     Int
   stock_quantity Int @default(0)
 
-  store   Store   @relation(fields: [store_id], references: [id])
-  product Product @relation(fields: [product_id], references: [id])
+  store   Store   @relation(fields: [store_id], references: [id],onDelete: Cascade)
+  product Product @relation(fields: [product_id], references: [id],onDelete: Cascade)
 
   @@unique([store_id, product_id])
+}
+
+model ProductCategory {
+  id Int @id @default(autoincrement())
+  category String
+  products Product[]
 }
 
 model Store {
   id            Int      @id @default(autoincrement())
   name          String
   address       String?
-  province_id   Int?
-  city_id       Int?
+  province   String?
+  city       String?
   latitude      Float?
   longitude     Float?
   is_active     Boolean  @default(true)
@@ -177,7 +183,7 @@ model Cart {
   updated_at     DateTime @updatedAt
 
   user      User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  store     Store      @relation(fields: [store_id], references: [id])
+  store     Store      @relation(fields: [store_id], references: [id], onDelete: Cascade)
   cartItems CartItem[]
 }
 
@@ -188,7 +194,7 @@ model CartItem {
   quantity   Int @default(1)
 
   cart    Cart    @relation(fields: [cart_id], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [product_id], references: [id])
+  product Product @relation(fields: [product_id], references: [id],onDelete: Cascade)
 
   @@unique([cart_id, product_id])
 }
@@ -205,9 +211,9 @@ model Order {
   created_at          DateTime @default(now())
   updated_at          DateTime @updatedAt
 
-  user         User          @relation(fields: [user_id], references: [id])
-  store        Store         @relation(fields: [store_id], references: [id])
-  orderStatus  OrderStatuses @relation(fields: [order_status_id], references: [id])
+  user         User          @relation(fields: [user_id], references: [id],onDelete: Cascade)
+  store        Store         @relation(fields: [store_id], references: [id],onDelete: Cascade)
+  orderStatus  OrderStatuses @relation(fields: [order_status_id], references: [id],onDelete: Cascade)
   orderItems   OrderItem[]
   paymentProof PaymentProof?
 }
@@ -226,7 +232,7 @@ model OrderItem {
   price_at_purchase Decimal
 
   order   Order   @relation(fields: [order_id], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [product_id], references: [id])
+  product Product @relation(fields: [product_id], references: [id], onDelete: Cascade)
 }
 
 model PaymentProof {
@@ -237,5 +243,3 @@ model PaymentProof {
 
   order Order @relation(fields: [order_id], references: [id], onDelete: Cascade)
 }
-=======
->>>>>>> e6745066593320b9b756d99f1d48883c500cd437

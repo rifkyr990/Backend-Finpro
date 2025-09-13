@@ -7,6 +7,8 @@ import {
   User,
   Prisma,
   Store,
+  ProductCategory,
+  Product,
 } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -19,6 +21,7 @@ async function main() {
   await prisma.productStocks.deleteMany();
   await prisma.productImage.deleteMany();
   await prisma.product.deleteMany();
+  await prisma.productCategory.deleteMany();
   await prisma.orderStatuses.deleteMany();
   await prisma.user.deleteMany();
   await prisma.store.deleteMany();
@@ -38,7 +41,7 @@ async function main() {
   //   },
   // });
 
-  // --USER SEEDING #2 (20 Dummy data) -- arco
+  // --USER SEEDING #2 (30 Dummy data) -- arco
   const customers: User[] = [];
 
   const roles = Object.values(Role) as Role[];
@@ -49,11 +52,14 @@ async function main() {
     const addresses: Prisma.UserAddressCreateWithoutUserInput[] = [];
     for (let i = 0; i < 3; i++) {
       addresses.push({
-        label: `Alamat ${i + 1}`,
-        address_line: faker.location.streetAddress(),
-        city: faker.location.city(),
+        name: faker.person.fullName(),
+        phone: faker.phone.number({ style: "international" }),
+        label: faker.helpers.arrayElement(["RUMAH", "KANTOR"]),
         province: faker.location.state(),
+        city: faker.location.city(),
+        district: faker.location.county(),
         postal_code: faker.location.zipCode(),
+        street: faker.location.streetAddress(),
         latitude: faker.location.latitude(),
         longitude: faker.location.longitude(),
         is_primary: i === 0, // hanya alamat pertama sebagai primary
@@ -126,6 +132,8 @@ async function main() {
       data: {
         name: storeName,
         address: address,
+        province: province,
+        city: city,
         latitude: latitude,
         longitude: longitude,
         is_active: isActive,
@@ -152,72 +160,145 @@ async function main() {
     }
   }
 
-  // --- Product & Product Image Seeding ---
+  // --- PRODUCT AND PRODUCT IMAGE SEEDING ---
+  console.log("Seeding Product Category");
+  const categories = ["Fashion", "Teknologi", "Sports", "Hobby"];
+  type CategoryType = {
+    id: number;
+    category: string;
+  };
+  const createdCategories: CategoryType[] = [];
+  const createdProducts: Product[] = [];
+  for (const categoryName of categories) {
+    const category = await prisma.productCategory.create({
+      data: { category: categoryName },
+    });
+    createdCategories.push(category);
+  }
+  //
 
-  const apple = await prisma.product.upsert({
-    where: { id: 1 },
-    update: {},
-    create: {
-      id: 1,
-      name: "Organic Fuji Apples",
-      description: "Pack of 6, freshly sourced from local farms",
-      price: 55000,
-    },
-  });
-  await prisma.productImage.upsert({
-    where: { id: 1 },
-    update: {},
-    create: {
-      id: 1,
-      product_id: apple.id,
-      image_url:
-        "https://images.unsplash.com/photo-1567306226416-28f0efdc88ce?w=500&q=80",
-    },
-  });
+  console.log("Seeding Product and Product Image");
 
-  const almondMilk = await prisma.product.upsert({
-    where: { id: 2 },
-    update: {},
-    create: {
-      id: 2,
-      name: "Almond Milk - Unsweetened",
-      description: "1L carton, dairy-free and vegan",
-      price: 32000,
-    },
-  });
-  await prisma.productImage.upsert({
-    where: { id: 2 },
-    update: {},
-    create: {
-      id: 2,
-      product_id: almondMilk.id,
-      image_url:
-        "https://images.unsplash.com/photo-1583337130417-b2df30b9e1b3?w=500&q=80",
-    },
-  });
+  for (let i = 0; i < 10; i++) {
+    const randomCategory = faker.helpers.arrayElement(createdCategories);
 
-  const bread = await prisma.product.upsert({
-    where: { id: 3 },
-    update: {},
-    create: {
-      id: 3,
-      name: "Whole Wheat Bread",
-      description: "400g loaf, soft and fresh-baked",
-      price: 28000,
-    },
-  });
-  await prisma.productImage.upsert({
-    where: { id: 3 },
-    update: {},
-    create: {
-      id: 3,
-      product_id: bread.id,
-      image_url:
-        "https://images.unsplash.com/photo-1608198093002-ad4e005484b7?w=500&q=80",
-    },
-  });
+    const product = await prisma.product.create({
+      data: {
+        name: faker.commerce.product(),
+        description: faker.commerce.productDescription(),
+        price: faker.commerce.price({
+          min: 10000,
+          max: 200000,
+        }),
+        is_active: faker.datatype.boolean(),
+        category_id: randomCategory.id,
+      },
+    });
 
-  // --- Stock Seeding ---
+    createdProducts.push(product);
+
+    // image
+    const imageCount = faker.number.int({ min: 1, max: 4 });
+    for (let i = 0; i < imageCount; i++) {
+      await prisma.productImage.create({
+        data: {
+          product_id: product.id,
+          image_url: faker.image.urlPicsumPhotos({ width: 500, height: 300 }),
+        },
+      });
+    }
+
+    for (const store of stores) {
+      await prisma.productStocks.create({
+        data: {
+          store_id: store.id,
+          product_id: product.id,
+          stock_quantity: faker.number.int({ min: 0, max: 100 }),
+        },
+      });
+    }
+  }
+  //
+
+  // const apple = await prisma.product.upsert({
+  //   where: { id: 1 },
+  //   update: {},
+  //   create: {
+  //     id: 1,
+  //     name: "Organic Fuji Apples",
+  //     description: "Pack of 6, freshly sourced from local farms",
+  //     price: 55000,
+  //   },
+  // });
+  // await prisma.productImage.upsert({
+  //   where: { id: 1 },
+  //   update: {},
+  //   create: {
+  //     id: 1,
+  //     product_id: apple.id,
+  //     image_url:
+  //       "https://images.unsplash.com/photo-1567306226416-28f0efdc88ce?w=500&q=80",
+  //   },
+  // });
+
+  // const almondMilk = await prisma.product.upsert({
+  //   where: { id: 2 },
+  //   update: {},
+  //   create: {
+  //     id: 2,
+  //     name: "Almond Milk - Unsweetened",
+  //     description: "1L carton, dairy-free and vegan",
+  //     price: 32000,
+  //   },
+  // });
+  // await prisma.productImage.upsert({
+  //   where: { id: 2 },
+  //   update: {},
+  //   create: {
+  //     id: 2,
+  //     product_id: almondMilk.id,
+  //     image_url:
+  //       "https://images.unsplash.com/photo-1583337130417-b2df30b9e1b3?w=500&q=80",
+  //   },
+  // });
+
+  // const bread = await prisma.product.upsert({
+  //   where: { id: 3 },
+  //   update: {},
+  //   create: {
+  //     id: 3,
+  //     name: "Whole Wheat Bread",
+  //     description: "400g loaf, soft and fresh-baked",
+  //     price: 28000,
+  //   },
+  // });
+  // await prisma.productImage.upsert({
+  //   where: { id: 3 },
+  //   update: {},
+  //   create: {
+  //     id: 3,
+  //     product_id: bread.id,
+  //     image_url:
+  //       "https://images.unsplash.com/photo-1608198093002-ad4e005484b7?w=500&q=80",
+  //   },
+  // });
+
+  // --- PRODUCT STOCK SEEDING ---
+  // const storeCount = faker.number.int({ min: 1, max: stores.length });
+  // const selectedStores = faker.helpers.arrayElements(stores, storeCount);
+
+  // for (const product of createdProducts) {
+  //   for (const store of selectedStores) {
+  //     await prisma.productStocks.create({
+  //       data: {
+  //         store_id: store.id,
+  //         product_id: product.id,
+  //         stock_quantity: faker.number.int({ min: 0, max: 100 }),
+  //       },
+  //     });
+  //   }
+  // }
+
   // await prisma.productStocks.upsert({
   //   where: {
   //     store_id_product_id: { store_id: storeJakarta.id, product_id: apple.id },

@@ -12,11 +12,12 @@ class StoreRoutes {
   private initializeRoutes() {
     this.router.get("/all", StoreController.getAllStores); //get all stores - arco
     this.router.get("/store-admins", StoreController.getAllStoreAdmin); //get all stores - arco
+    this.router.delete("/:id", StoreController.deleteStoreById); // arco
+    this.router.patch("/:id", StoreController.patchStoreById); // arco
     this.router.patch(
       "/relocate-admin/:id",
       StoreController.patchStoreAdminRelocation
     ); //get all stores - arco
-    this.router.delete("/:id", StoreController.deleteStoreById); // arco
   }
 }
 

@@ -42,14 +42,53 @@ class StoreController {
   public static deleteStoreById = async (req: Request, res: Response) => {
     try {
       const storeId = Number(req.params.id);
-      if (storeId) {
-        const deletedStoreId = await prisma.store.delete({
-          where: { id: storeId! },
+      const result = await prisma.$transaction(async (tx) => {
+        // revert admin to customer
+        await tx.user.updateMany({
+          where: {
+            store_id: storeId,
+            role: "STORE_ADMIN",
+          },
+          data: {
+            role: "CUSTOMER",
+          },
         });
-        ApiResponse.success(res, `Delete store id ${storeId} success`);
-      }
+        // delete store id
+        await tx.store.delete({
+          where: { id: storeId },
+        });
+      });
+      ApiResponse.success(res, result, "Delete Data Success", 200);
     } catch (error) {
       ApiResponse.error(res, "Error delete store data by id", 400);
+    }
+  }; // arco
+  public static patchStoreById = async (req: Request, res: Response) => {
+    try {
+      const storeId = Number(req.params.id);
+      const { name, address, city, province, latitude, longitude, is_active } =
+        req.body.payload;
+      const updateStore = await prisma.store.update({
+        where: { id: storeId },
+        data: {
+          name,
+          address,
+          city,
+          province,
+          latitude,
+          longitude,
+          is_active,
+        },
+      });
+      // console.log(req.body.payload);
+      ApiResponse.success(
+        res,
+        updateStore,
+        "Update Store Details Success!",
+        200
+      );
+    } catch (error) {
+      ApiResponse.error(res, "Update Store Error", 400);
     }
   };
   public static patchStoreAdminRelocation = async (

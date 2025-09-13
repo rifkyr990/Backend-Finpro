@@ -9,6 +9,7 @@ import RajaOngkirRoutes from "./routes/RajaOngkirRoutes";
 import { ApiResponse } from "./utils/ApiResponse";
 import CartRoutes from "./routes/CartRoutes";
 import StoreRoutes from "./routes/StoreRoutes";
+import ProductRoutes from "./routes/ProductRoutes";
 
 dotenv.config();
 
@@ -37,6 +38,7 @@ class App {
     // arco-start
     this.app.use("/api/user", UserRoutes);
     this.app.use("/api/store", StoreRoutes);
+    this.app.use("/api/product", ProductRoutes);
     // arco-end
     this.app.get("/", (req, res) => {
       return ApiResponse.success(res, null, "API is running 🚀");
