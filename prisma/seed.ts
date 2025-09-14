@@ -1,5 +1,3 @@
-// prisma/seed.ts
-
 import { PrismaClient, Role, OrderStatus } from "@prisma/client";
 import { hashPassword } from "../src/utils/bcrypt";
 
@@ -9,13 +7,10 @@ async function main() {
   console.log("Seeding database...");
 
   const customerId = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11";
-  const storeJakartaId = "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12";
-  const storeSurabayaId = "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13";
   const appleId = "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14";
   const almondMilkId = "e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15";
   const breadId = "f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16";
 
-  // --- User Seeding ---
   const hashedPassword = await hashPassword("Password123!");
   const customer = await prisma.user.upsert({
     where: { email: "customer@example.com" },
@@ -33,23 +28,37 @@ async function main() {
 
   await prisma.userAddress.upsert({
     where: { id: 1 },
-    update: {},
+    update: {
+      name: "John Doe",
+      phone: "081234567890",
+      label: "Home",
+      province: "DKI Jakarta",
+      city: "Jakarta Pusat",
+      district: "Gambir",
+      postal_code: "10110",
+      street: "Jl. Merdeka No. 123",
+      is_primary: true,
+    },
     create: {
       id: 1,
-      user_id: customerId,
+      user_id: customer.id,
+      name: "John Doe",
+      phone: "081234567890",
       label: "Home",
-      address_details: "Jl. Merdeka No. 123, Jakarta Pusat",
-      phone_number: "081234567890",
+      province: "DKI Jakarta",
+      city: "Jakarta Pusat",
+      district: "Gambir",
       postal_code: "10110",
+      street: "Jl. Merdeka No. 123",
       is_primary: true,
     },
   });
 
   const storeJakarta = await prisma.store.upsert({
-    where: { id: storeJakartaId },
+    where: { id: 1 },
     update: {},
     create: {
-      id: storeJakartaId,
+      id: 1,
       name: "GrocerApp Jakarta",
       address: "Jl. Jenderal Sudirman No.Kav. 52-53",
       is_main_store: true,
@@ -57,10 +66,10 @@ async function main() {
   });
 
   const storeSurabaya = await prisma.store.upsert({
-    where: { id: storeSurabayaId },
+    where: { id: 2 },
     update: {},
     create: {
-      id: storeSurabayaId,
+      id: 2,
       name: "GrocerApp Surabaya",
       address: "Jl. Basuki Rahmat No.8-12",
     },
@@ -76,13 +85,6 @@ async function main() {
       price: 55000,
     },
   });
-  await prisma.productImage.create({
-    data: {
-      product_id: apple.id,
-      image_url:
-        "https://images.unsplash.com/photo-1567306226416-28f0efdc88ce?w=500&q=80",
-    },
-  });
 
   const almondMilk = await prisma.product.upsert({
     where: { id: almondMilkId },
@@ -92,13 +94,6 @@ async function main() {
       name: "Almond Milk - Unsweetened",
       description: "1L carton, dairy-free and vegan",
       price: 32000,
-    },
-  });
-  await prisma.productImage.create({
-    data: {
-      product_id: almondMilk.id,
-      image_url:
-        "https://images.unsplash.com/photo-1583337130417-b2df30b9e1b3?w=500&q=80",
     },
   });
 
@@ -112,13 +107,35 @@ async function main() {
       price: 28000,
     },
   });
-  await prisma.productImage.create({
-    data: {
-      product_id: bread.id,
-      image_url:
+
+  const productsWithImages = [
+    {
+      product: apple,
+      imageUrl:
+        "https://images.unsplash.com/photo-1567306226416-28f0efdc88ce?w=500&q=80",
+    },
+    {
+      product: almondMilk,
+      imageUrl:
+        "https://images.unsplash.com/photo-1583337130417-b2df30b9e1b3?w=500&q=80",
+    },
+    {
+      product: bread,
+      imageUrl:
         "https://images.unsplash.com/photo-1608198093002-ad4e005484b7?w=500&q=80",
     },
-  });
+  ];
+
+  for (const item of productsWithImages) {
+    const existingImage = await prisma.productImage.findFirst({
+      where: { product_id: item.product.id },
+    });
+    if (!existingImage) {
+      await prisma.productImage.create({
+        data: { product_id: item.product.id, image_url: item.imageUrl },
+      });
+    }
+  }
 
   await prisma.productStocks.upsert({
     where: {
@@ -199,7 +216,7 @@ async function main() {
   console.log("Seeding cart for default customer...");
   const customerCart = await prisma.cart.upsert({
     where: { user_id: customer.id },
-    update: {},
+    update: { store_id: storeJakarta.id },
     create: { user_id: customer.id, store_id: storeJakarta.id },
   });
 
@@ -221,15 +238,6 @@ async function main() {
 
   console.log("Seeding completed!");
 }
-
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
 
 main()
   .catch((e) => {

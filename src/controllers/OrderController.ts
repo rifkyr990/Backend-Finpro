@@ -12,11 +12,18 @@ class OrderController {
         return ApiResponse.error(res, "Unauthorized", 401);
       }
 
-      const { addressId, shippingCost, shippingService, paymentMethodId } =
-        req.body;
+      const { addressId, shippingCost, paymentMethodId } = req.body;
 
-      if (!addressId || !shippingCost || !paymentMethodId) {
-        return ApiResponse.error(res, "Missing required fields", 400);
+      if (
+        typeof addressId !== "number" ||
+        typeof shippingCost !== "number" ||
+        typeof paymentMethodId !== "number"
+      ) {
+        return ApiResponse.error(
+          res,
+          "Invalid data types for required fields",
+          400
+        );
       }
 
       const userCart = await prisma.cart.findUnique({
@@ -44,9 +51,30 @@ class OrderController {
         (sum, item) => sum + Number(item.product.price) * item.quantity,
         0
       );
-
       const totalPrice = subtotal + shippingCost;
-      const destinationAddress = `${userAddress.address_details}, ${userAddress.postal_code}`;
+
+      const {
+        name,
+        phone,
+        street,
+        detail,
+        subdistrict,
+        district,
+        city,
+        province,
+        postal_code,
+      } = userAddress;
+
+      const destinationAddress = [
+        `${name} (${phone})`,
+        street,
+        detail,
+        subdistrict,
+        district,
+        `${city}, ${province} ${postal_code}`,
+      ]
+        .filter(Boolean)
+        .join(", ");
 
       const newOrder = await prisma.$transaction(async (tx) => {
         const order = await tx.order.create({
@@ -54,8 +82,10 @@ class OrderController {
             user_id: userId,
             store_id: userCart.store_id,
             destination_address: destinationAddress,
+            latitude: userAddress.latitude,
+            longitude: userAddress.longitude,
             total_price: totalPrice,
-            order_status_id: 1, // PENDING_PAYMENT
+            order_status_id: 1, // Assumes 1 = PENDING_PAYMENT
           },
         });
 
@@ -88,7 +118,7 @@ class OrderController {
 
       return ApiResponse.success(
         res,
-        newOrder,
+        { orderId: newOrder.id },
         "Order created successfully",
         201
       );

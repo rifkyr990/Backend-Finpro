@@ -1,5 +1,6 @@
 import { Router } from "express";
 import CartController from "../controllers/CartController";
+import { authMiddleware } from "../middlewares/AuthMiddleware";
 
 const router = Router();
 
@@ -12,8 +13,8 @@ class CartRoutes {
   }
 
   private initializeRoutes() {
-    this.router.get("/", CartController.getCart);
-    this.router.put("/", CartController.updateCart);
+    this.router.get("/", authMiddleware(), CartController.getCart);
+    this.router.put("/", authMiddleware(), CartController.updateCart);
   }
 }
 
