@@ -58,7 +58,22 @@ class ProductController {
             },
             select: {
               stock_quantity: true,
-              store: true,
+              store: {
+                select: {
+                  admins: {
+                    select: {
+                      phone: true,
+                    },
+                  },
+                  address: true,
+                  city: true,
+                  is_active: true,
+                  latitude: true,
+                  longitude: true,
+                  name: true,
+                  province: true,
+                },
+              },
             },
           },
         },
@@ -83,7 +98,25 @@ class ProductController {
               where: {
                 store: { province },
               },
-              select: { stock_quantity: true, store: true },
+              select: {
+                stock_quantity: true,
+                store: {
+                  select: {
+                    admins: {
+                      select: {
+                        phone: true,
+                      },
+                    },
+                    address: true,
+                    city: true,
+                    is_active: true,
+                    latitude: true,
+                    longitude: true,
+                    name: true,
+                    province: true,
+                  },
+                },
+              },
             },
           },
         });
