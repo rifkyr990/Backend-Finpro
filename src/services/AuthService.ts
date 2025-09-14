@@ -8,6 +8,7 @@ import { sendEmail } from '../utils/email';
 import { v4 as uuidv4 } from "uuid";
 import { addMinutes } from "date-fns";
 import { requestResetPasswordEmail } from '../templates/ResetPassword';
+import { validatePassword } from "../utils/validatePassword";
 
 class AuthService {
     // REGISTRASI TANPA PASSWORD + TOKEN VERIFIKASI
@@ -63,6 +64,10 @@ class AuthService {
         if (!verificationToken) {
             throw new Error("Token tidak valid atau sudah kedaluwarsa");
         }
+        const error = validatePassword(password);
+        if (error) {
+            throw new Error(error);
+        }
 
         const hashedPassword = await hashPassword(password);
 
@@ -85,7 +90,6 @@ class AuthService {
     // Resend verifikasi email
     public async resendVerification(email: string) {
         const user = await prisma.user.findUnique({ where: { email }});
-
         if(!user) throw new Error("User tidak ditemukan");
         if (user.is_verified) throw new Error("Akun sudah terverifikasi");
 
@@ -107,7 +111,7 @@ class AuthService {
             }
         });
 
-        const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+        const verificationUrl = `${process.env.FRONTEND_URL}/auth/verify-new-email?token=${token}`;
         await sendEmail({
             to: user.email,
             subject: "Kirim Ulang Verifikasi Email - FreshCart",
@@ -122,7 +126,6 @@ class AuthService {
     public async login(email: string, password: string) {
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user || !user.password) throw new Error("Email atau password salah");
-        if (!user.is_verified) throw new Error("Akun belum diverifikasi");
 
         const isValid = await comparePassword(password, user.password);
         if (!isValid) throw new Error("Email atau password salah");
@@ -166,11 +169,15 @@ class AuthService {
         });
 
         if (!resetToken || resetToken.used || resetToken.expires_at < new Date()) {
-            throw new Error("Token tidak valid atau kadaluarsa")
+            throw new Error("Token tidak valid atau kadaluarsa");
+        }
+
+        const error = validatePassword(newPassword);
+        if (error) {
+            throw new Error(error);
         }
 
         const hashed = await bcrypt.hash(newPassword, 10);
-        // update data user
         await prisma.user.update({
             where: { id: resetToken.user_id },
             data: { password: hashed },
@@ -178,9 +185,9 @@ class AuthService {
 
         await prisma.passwordResetToken.update({
             where: { token },
-            data: { used: true }
+            data: { used: true },
         });
+        return true;
     }
 }
-
 export default new AuthService();
