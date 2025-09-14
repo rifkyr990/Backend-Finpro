@@ -1,0 +1,103 @@
+import prisma from "../config/prisma";
+import cloudinary from "../config/cloudinary";
+import bcrypt from "bcrypt";
+
+class UserService {
+    private defaultProfileUrl = "https://res.cloudinary.com/your_cloud/image/upload/v123456789/default-profile.png";
+
+    public async updateProfilePicture(userId: string, fileBuffer: Buffer) {
+        const user = await prisma.user.findUnique({ where: { id: userId }});
+        if (!userId) throw new Error("User not found");
+
+        if (user?.image_id) {
+            await cloudinary.uploader.destroy(user.image_id);
+        }
+
+        const result = await new Promise<any>((resolve, reject) => {
+            cloudinary.uploader.upload_stream(
+                {
+                    folder: "profile_picture",
+                    resource_type: "image",
+                },
+                (error, uploaded) => {
+                    if (error) reject(error);
+                    else resolve(uploaded);
+                }
+            ).end(fileBuffer);
+        });
+
+        return prisma.user.update({
+            where: { id: userId },
+            data: {
+                image_url: result.secure_url,
+                image_id: result.public_id,
+            }
+        });
+    }
+
+    public async getProfile(userId: string) {
+        return prisma.user.findUnique({
+            where: { id: userId },
+            include: { profile: true },
+        });
+    }
+    
+    public async updateProfile(userId: string, data: any) {
+    if (!data) {
+        throw new Error("Request body kosong, pastikan mengirim data profile");
+    }
+
+    const { first_name, last_name, bio, phone, date_of_birth, email } = data;
+
+    // Ambil email lama user
+    const existingUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true },
+    });
+
+    const updateData: any = {
+        first_name,
+        last_name,
+        phone,
+        profile: {
+            upsert: {
+                create: { bio, date_of_birth },
+                update: { bio, date_of_birth },
+            },
+        },
+    };
+
+    if (email && email !== existingUser?.email) {
+        updateData.email = email;
+        updateData.is_verified = false;
+    }
+
+    const updateUser = await prisma.user.update({
+        where: { id: userId },
+        data: updateData,
+        include: { profile: true },
+    });
+
+    return updateUser;
+}
+
+
+
+    public async changePassword(userId: string, oldPassword: string, newPassword:string) {
+        const user = await prisma.user.findUnique({ where: { id: userId }});
+        if(!user?.password) throw new Error("Password tidak ditemukan");
+
+        const isMatch = await bcrypt.compare(oldPassword, user.password);
+        if(!isMatch) throw new Error("Password lama salah");
+
+        const hashed = await bcrypt.hash(newPassword, 10);
+        await prisma.user.update({
+            where: { id: userId },
+            data: { password: hashed },
+        });
+
+        return true;
+    }
+}
+
+export default new UserService();

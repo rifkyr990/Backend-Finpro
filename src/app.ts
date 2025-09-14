@@ -3,6 +3,9 @@ import express, { Application } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import AuthRoutes from "./routes/AuthRoutes";
+import UserRoutes from "./routes/UserRoutes";
+import UserAddressRoutes from "./routes/UserAddressRoutes";
+import RajaOngkirRoutes from "./routes/RajaOngkirRoutes";
 import { ApiResponse } from "./utils/ApiResponse";
 import CartRoutes from "./routes/CartRoutes";
 
@@ -29,6 +32,9 @@ class App {
 
   private initializeRoutes() {
     this.app.use("/api/auth", AuthRoutes);
+    this.app.use("/api/user", UserRoutes);
+    this.app.use("/api/address", UserAddressRoutes);
+    this.app.use("/api/rajaongkir", RajaOngkirRoutes);
     this.app.use("/api/cart", CartRoutes);
     this.app.get("/", (req, res) => {
       return ApiResponse.success(res, null, "API is running 🚀");

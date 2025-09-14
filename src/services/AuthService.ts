@@ -11,7 +11,7 @@ import { requestResetPasswordEmail } from '../templates/ResetPassword';
 
 class AuthService {
     // REGISTRASI TANPA PASSWORD + TOKEN VERIFIKASI
-    public async register(first_name: string, last_name: string, email: string, role: "CUSTOMER" | "TENANT") {
+    public async register(first_name: string, last_name: string, email: string) {
         const existingUser = await prisma.user.findUnique({ where: { email } });
         if (existingUser) throw new Error("Email sudah digunakan");
 
@@ -20,7 +20,7 @@ class AuthService {
                 first_name,
                 last_name,
                 email,
-                role,
+                role: "CUSTOMER",
                 is_verified: false,
             },
         });
@@ -31,7 +31,7 @@ class AuthService {
             data: {
                 user_id: user.id,
                 token,
-                expires_at: new Date(Date.now() + 60 * 60 * 1000), // 1 jam
+                expires_at: new Date(Date.now() + 60 * 60 * 1000),
                 used: false,
             },
         });
@@ -127,7 +127,7 @@ class AuthService {
         const isValid = await comparePassword(password, user.password);
         if (!isValid) throw new Error("Email atau password salah");
 
-        const token = signToken({ id: user.id, role: user.role });
+        const token = signToken({ id: user.id, role: user.role, email: user.email });
         return { user, token };
     }
 
