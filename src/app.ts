@@ -8,6 +8,7 @@ import RajaOngkirRoutes from "./routes/RajaOngkirRoutes";
 import { ApiResponse } from "./utils/ApiResponse";
 import CartRoutes from "./routes/CartRoutes";
 import OrderRoutes from "./routes/OrderRoutes";
+import ShippingRoutes from "./routes/ShippingRoutes";
 
 dotenv.config();
 
@@ -37,6 +38,7 @@ class App {
     this.app.use("/api/rajaongkir", RajaOngkirRoutes);
     this.app.use("/api/cart", CartRoutes);
     this.app.use("/api/orders", OrderRoutes);
+    this.app.use("/api/shipping", ShippingRoutes);
     this.app.get("/", (req, res) => {
       return ApiResponse.success(res, null, "API is running 🚀");
     });
