@@ -1,5 +1,5 @@
 -- CreateEnum
-CREATE TYPE "public"."Role" AS ENUM ('CUSTOMER', 'TENANT', 'STORE_ADMIN', 'SUPER_ADMIN');
+CREATE TYPE "public"."Role" AS ENUM ('CUSTOMER', 'STORE_ADMIN', 'SUPER_ADMIN');
 
 -- CreateEnum
 CREATE TYPE "public"."Provider" AS ENUM ('GOOGLE', 'FACEBOOK', 'TWITTER');
@@ -34,6 +34,7 @@ CREATE TABLE "public"."User" (
     "is_verified" BOOLEAN NOT NULL DEFAULT false,
     "image_url" TEXT,
     "image_id" TEXT,
+    "store_id" INTEGER,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
@@ -108,8 +109,8 @@ CREATE TABLE "public"."Store" (
     "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
     "address" TEXT,
-    "province_id" INTEGER,
-    "city_id" INTEGER,
+    "province" TEXT,
+    "city" TEXT,
     "latitude" DOUBLE PRECISION,
     "longitude" DOUBLE PRECISION,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
@@ -122,14 +123,13 @@ CREATE TABLE "public"."Store" (
 
 -- CreateTable
 CREATE TABLE "public"."Product" (
-    "id" TEXT NOT NULL,
-    "category_id" INTEGER,
+    "id" SERIAL NOT NULL,
+    "category_id" INTEGER NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT,
     "price" DECIMAL(65,30) NOT NULL,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "productCategoryId" INTEGER,
 
     CONSTRAINT "Product_pkey" PRIMARY KEY ("id")
 );
@@ -137,7 +137,7 @@ CREATE TABLE "public"."Product" (
 -- CreateTable
 CREATE TABLE "public"."ProductImage" (
     "id" SERIAL NOT NULL,
-    "product_id" TEXT NOT NULL,
+    "product_id" INTEGER NOT NULL,
     "image_url" TEXT NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -148,10 +148,18 @@ CREATE TABLE "public"."ProductImage" (
 CREATE TABLE "public"."ProductStocks" (
     "id" SERIAL NOT NULL,
     "store_id" INTEGER NOT NULL,
-    "product_id" TEXT NOT NULL,
+    "product_id" INTEGER NOT NULL,
     "stock_quantity" INTEGER NOT NULL DEFAULT 0,
 
     CONSTRAINT "ProductStocks_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."ProductCategory" (
+    "id" SERIAL NOT NULL,
+    "category" TEXT NOT NULL,
+
+    CONSTRAINT "ProductCategory_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -185,7 +193,7 @@ CREATE TABLE "public"."Cart" (
 CREATE TABLE "public"."CartItem" (
     "id" SERIAL NOT NULL,
     "cart_id" INTEGER NOT NULL,
-    "product_id" TEXT NOT NULL,
+    "product_id" INTEGER NOT NULL,
     "quantity" INTEGER NOT NULL DEFAULT 1,
 
     CONSTRAINT "CartItem_pkey" PRIMARY KEY ("id")
@@ -219,7 +227,7 @@ CREATE TABLE "public"."OrderStatuses" (
 CREATE TABLE "public"."OrderItem" (
     "id" SERIAL NOT NULL,
     "order_id" INTEGER NOT NULL,
-    "product_id" TEXT NOT NULL,
+    "product_id" INTEGER NOT NULL,
     "quantity" INTEGER NOT NULL,
     "price_at_purchase" DECIMAL(65,30) NOT NULL,
 
@@ -262,7 +270,7 @@ CREATE TABLE "public"."PaymentProof" (
 -- CreateTable
 CREATE TABLE "public"."Discount" (
     "id" SERIAL NOT NULL,
-    "product_id" TEXT,
+    "product_id" INTEGER,
     "store_id" INTEGER,
     "code" TEXT NOT NULL,
     "description" TEXT,
@@ -316,79 +324,6 @@ CREATE TABLE "public"."ReferralUsage" (
     CONSTRAINT "ReferralUsage_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
-CREATE TABLE "public"."ProductCategory" (
-    "id" SERIAL NOT NULL,
-    "category" TEXT NOT NULL,
-
-    CONSTRAINT "ProductCategory_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "public"."Admins" (
-    "id" TEXT NOT NULL,
-    "user_id" TEXT NOT NULL,
-    "store_id" INTEGER NOT NULL,
-
-    CONSTRAINT "Admins_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "public"."City" (
-    "id" SERIAL NOT NULL,
-    "province_id" INTEGER NOT NULL,
-    "name_city" TEXT NOT NULL,
-
-    CONSTRAINT "City_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "public"."Province" (
-    "id" SERIAL NOT NULL,
-
-    CONSTRAINT "Province_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "public"."Promotions" (
-    "id" TEXT NOT NULL,
-    "store_id" INTEGER NOT NULL,
-    "title" TEXT NOT NULL,
-    "description" TEXT,
-    "banner_url" TEXT,
-    "start_date" TIMESTAMP(3) NOT NULL,
-    "end_date" TIMESTAMP(3) NOT NULL,
-    "is_active" BOOLEAN NOT NULL DEFAULT true,
-
-    CONSTRAINT "Promotions_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "public"."Banners" (
-    "id" SERIAL NOT NULL,
-    "store_id" INTEGER NOT NULL,
-    "image_url" TEXT NOT NULL,
-    "caption" TEXT,
-    "link" TEXT,
-    "order_number" INTEGER,
-
-    CONSTRAINT "Banners_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "public"."ShippingCosts" (
-    "id" SERIAL NOT NULL,
-    "store_id" INTEGER NOT NULL,
-    "user_address_id" INTEGER NOT NULL,
-    "courier" TEXT NOT NULL,
-    "service_type" TEXT NOT NULL,
-    "estimation" TEXT,
-    "cost" DECIMAL(65,30) NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "ShippingCosts_pkey" PRIMARY KEY ("id")
-);
-
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "public"."User"("email");
 
@@ -417,6 +352,9 @@ CREATE UNIQUE INDEX "PaymentProof_payment_id_key" ON "public"."PaymentProof"("pa
 CREATE UNIQUE INDEX "Referral_referral_code_key" ON "public"."Referral"("referral_code");
 
 -- AddForeignKey
+ALTER TABLE "public"."User" ADD CONSTRAINT "User_store_id_fkey" FOREIGN KEY ("store_id") REFERENCES "public"."Store"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "public"."SocialLogin" ADD CONSTRAINT "SocialLogin_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -432,16 +370,16 @@ ALTER TABLE "public"."UserProfile" ADD CONSTRAINT "UserProfile_user_id_fkey" FOR
 ALTER TABLE "public"."UserAddress" ADD CONSTRAINT "UserAddress_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."Product" ADD CONSTRAINT "Product_productCategoryId_fkey" FOREIGN KEY ("productCategoryId") REFERENCES "public"."ProductCategory"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "public"."Product" ADD CONSTRAINT "Product_category_id_fkey" FOREIGN KEY ("category_id") REFERENCES "public"."ProductCategory"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."ProductImage" ADD CONSTRAINT "ProductImage_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "public"."Product"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."ProductStocks" ADD CONSTRAINT "ProductStocks_store_id_fkey" FOREIGN KEY ("store_id") REFERENCES "public"."Store"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."ProductStocks" ADD CONSTRAINT "ProductStocks_store_id_fkey" FOREIGN KEY ("store_id") REFERENCES "public"."Store"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."ProductStocks" ADD CONSTRAINT "ProductStocks_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "public"."Product"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."ProductStocks" ADD CONSTRAINT "ProductStocks_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "public"."Product"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."StockHistory" ADD CONSTRAINT "StockHistory_product_stock_id_fkey" FOREIGN KEY ("product_stock_id") REFERENCES "public"."ProductStocks"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -450,28 +388,28 @@ ALTER TABLE "public"."StockHistory" ADD CONSTRAINT "StockHistory_product_stock_i
 ALTER TABLE "public"."Cart" ADD CONSTRAINT "Cart_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."Cart" ADD CONSTRAINT "Cart_store_id_fkey" FOREIGN KEY ("store_id") REFERENCES "public"."Store"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."Cart" ADD CONSTRAINT "Cart_store_id_fkey" FOREIGN KEY ("store_id") REFERENCES "public"."Store"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."CartItem" ADD CONSTRAINT "CartItem_cart_id_fkey" FOREIGN KEY ("cart_id") REFERENCES "public"."Cart"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."CartItem" ADD CONSTRAINT "CartItem_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "public"."Product"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."CartItem" ADD CONSTRAINT "CartItem_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "public"."Product"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."Order" ADD CONSTRAINT "Order_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."Order" ADD CONSTRAINT "Order_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."Order" ADD CONSTRAINT "Order_store_id_fkey" FOREIGN KEY ("store_id") REFERENCES "public"."Store"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."Order" ADD CONSTRAINT "Order_store_id_fkey" FOREIGN KEY ("store_id") REFERENCES "public"."Store"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."Order" ADD CONSTRAINT "Order_order_status_id_fkey" FOREIGN KEY ("order_status_id") REFERENCES "public"."OrderStatuses"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."Order" ADD CONSTRAINT "Order_order_status_id_fkey" FOREIGN KEY ("order_status_id") REFERENCES "public"."OrderStatuses"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."OrderItem" ADD CONSTRAINT "OrderItem_order_id_fkey" FOREIGN KEY ("order_id") REFERENCES "public"."Order"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."OrderItem" ADD CONSTRAINT "OrderItem_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "public"."Product"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."OrderItem" ADD CONSTRAINT "OrderItem_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "public"."Product"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."Payment" ADD CONSTRAINT "Payment_order_id_fkey" FOREIGN KEY ("order_id") REFERENCES "public"."Order"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -505,24 +443,3 @@ ALTER TABLE "public"."ReferralUsage" ADD CONSTRAINT "ReferralUsage_referrer_id_f
 
 -- AddForeignKey
 ALTER TABLE "public"."ReferralUsage" ADD CONSTRAINT "ReferralUsage_referee_id_fkey" FOREIGN KEY ("referee_id") REFERENCES "public"."User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "public"."Admins" ADD CONSTRAINT "Admins_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "public"."Admins" ADD CONSTRAINT "Admins_store_id_fkey" FOREIGN KEY ("store_id") REFERENCES "public"."Store"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "public"."City" ADD CONSTRAINT "City_province_id_fkey" FOREIGN KEY ("province_id") REFERENCES "public"."Province"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "public"."Promotions" ADD CONSTRAINT "Promotions_store_id_fkey" FOREIGN KEY ("store_id") REFERENCES "public"."Store"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "public"."Banners" ADD CONSTRAINT "Banners_store_id_fkey" FOREIGN KEY ("store_id") REFERENCES "public"."Store"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "public"."ShippingCosts" ADD CONSTRAINT "ShippingCosts_store_id_fkey" FOREIGN KEY ("store_id") REFERENCES "public"."Store"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "public"."ShippingCosts" ADD CONSTRAINT "ShippingCosts_user_address_id_fkey" FOREIGN KEY ("user_address_id") REFERENCES "public"."UserAddress"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
