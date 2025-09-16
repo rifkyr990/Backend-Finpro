@@ -9,7 +9,6 @@ datasource db {
 
 enum Role {
   CUSTOMER
-  TENANT
   STORE_ADMIN
   SUPER_ADMIN
 }
@@ -30,62 +29,28 @@ enum OrderStatus {
   REFUNDED
 }
 
-enum DiscountType {
-  MANUAL
-  MIN_PURCHASE
-  B1G1
-  FREE_ONGKIR
-}
-
-enum DiscountUsageStatus {
-  APPLIED
-  CANCELLED
-}
-
-enum ReferralUsageStatus {
-  PENDING
-  APPLIED
-  EXPIRED
-}
-
-enum StockHistoryType {
-  IN
-  OUT
-}
-
-enum PaymentStatus {
-  PENDING
-  SUCCESS
-  FAILED
-  REFUNDED
-}
-
 model User {
-  id          String   @id @default(uuid())
-  first_name  String
-  last_name   String
-  email       String   @unique
-  phone       String?
-  password    String?
-  role        Role     @default(CUSTOMER)
-  is_verified Boolean  @default(false)
-  image_url   String?
-  image_id    String?
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
-
-  socialLogins             SocialLogin[]
-  discountUsage            DiscountUsage[]
-  verificationTokens       VerificationToken[]
-  passwordResetTokens      PasswordResetToken[]
-  profile                  UserProfile?
-  addresses                UserAddress[]
-  cart                     Cart?
-  orders                   Order[]
-  referrals                Referral[]
-  referralUsagesAsReferrer ReferralUsage[]      @relation("Referrer")
-  referralUsagesAsReferee  ReferralUsage[]      @relation("Referee")
-  Admins                   Admins[]
+  id                  String               @id @default(uuid())
+  first_name          String
+  last_name           String
+  email               String               @unique
+  phone               String?
+  password            String?
+  role                Role                 @default(CUSTOMER)
+  is_verified         Boolean              @default(false)
+  image_url           String?
+  image_id            String?
+  store_id            Int?
+  created_at          DateTime             @default(now())
+  updated_at          DateTime             @updatedAt
+  socialLogins        SocialLogin[]
+  verificationTokens  VerificationToken[]
+  passwordResetTokens PasswordResetToken[]
+  profile             UserProfile?
+  addresses           UserAddress[]
+  cart                Cart?
+  orders              Order[]
+  store               Store?               @relation(fields: [store_id], references: [id], onDelete: SetNull)
 }
 
 model SocialLogin {
@@ -143,57 +108,28 @@ model UserAddress {
   longitude   Float?
   is_primary  Boolean @default(false)
 
-  user          User            @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  ShippingCosts ShippingCosts[]
-}
-
-// =============================
-// Store & Product
-// =============================
-model Store {
-  id            Int      @id @default(autoincrement())
-  name          String
-  address       String?
-  province_id   Int?
-  city_id       Int?
-  latitude      Float?
-  longitude     Float?
-  is_active     Boolean  @default(true)
-  is_main_store Boolean  @default(false)
-  created_at    DateTime @default(now())
-  updated_at    DateTime @updatedAt
-
-  orders        Order[]
-  cart          Cart[]
-  stocks        ProductStocks[]
-  banners       Banners[]
-  promotions    Promotions[]
-  discount      Discount[]
-  Admins        Admins[]
-  ShippingCosts ShippingCosts[]
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
 model Product {
-  id          String   @id @default(uuid())
-  category_id Int?
+  id          Int      @id @default(autoincrement())
+  category_id Int
   name        String
   description String?
-  price       Decimal
+  price       String
   is_active   Boolean  @default(true)
   created_at  DateTime @default(now())
 
-  cartItems         CartItem[]
-  orderItems        OrderItem[]
-  stocks            ProductStocks[]
-  images            ProductImage[]
-  discounts         Discount[]
-  ProductCategory   ProductCategory? @relation(fields: [productCategoryId], references: [id])
-  productCategoryId Int?
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+  stocks     ProductStocks[]
+  images     ProductImage[]
+  category   ProductCategory @relation(fields: [category_id], references: [id], onDelete: Cascade)
 }
 
 model ProductImage {
   id         Int      @id @default(autoincrement())
-  product_id String
+  product_id Int
   image_url  String
   created_at DateTime @default(now())
 
@@ -201,34 +137,42 @@ model ProductImage {
 }
 
 model ProductStocks {
-  id             Int    @id @default(autoincrement())
+  id             Int @id @default(autoincrement())
   store_id       Int
-  product_id     String
-  stock_quantity Int    @default(0)
+  product_id     Int
+  stock_quantity Int @default(0)
 
-  store   Store          @relation(fields: [store_id], references: [id])
-  product Product        @relation(fields: [product_id], references: [id])
-  history StockHistory[]
+  store   Store   @relation(fields: [store_id], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [product_id], references: [id], onDelete: Cascade)
 
   @@unique([store_id, product_id])
 }
 
-model StockHistory {
-  id               Int              @id @default(autoincrement())
-  product_stock_id Int
-  type             StockHistoryType
-  quantity         Int
-  prevStock        Int
-  newestStock      Int
-  created_by       String
-  created_at       DateTime         @default(now())
-
-  productStock ProductStocks @relation(fields: [product_stock_id], references: [id])
+model ProductCategory {
+  id       Int       @id @default(autoincrement())
+  category String
+  products Product[]
 }
 
-// =============================
-// Cart & Order
-// =============================
+model Store {
+  id            Int      @id @default(autoincrement())
+  name          String
+  address       String?
+  province      String?
+  city          String?
+  latitude      Float?
+  longitude     Float?
+  is_active     Boolean  @default(true)
+  is_main_store Boolean  @default(false)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  admins User[]
+  orders Order[]
+  cart   Cart[]
+  stocks ProductStocks[]
+}
+
 model Cart {
   id             Int      @id @default(autoincrement())
   user_id        String   @unique
@@ -239,7 +183,7 @@ model Cart {
   updated_at     DateTime @updatedAt
 
   user      User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  store     Store      @relation(fields: [store_id], references: [id])
+  store     Store      @relation(fields: [store_id], references: [id], onDelete: Cascade)
   cartItems CartItem[]
 }
 
@@ -250,7 +194,7 @@ model CartItem {
   quantity   Int    @default(1)
 
   cart    Cart    @relation(fields: [cart_id], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [product_id], references: [id])
+  product Product @relation(fields: [product_id], references: [id], onDelete: Cascade)
 
   @@unique([cart_id, product_id])
 }
@@ -267,12 +211,11 @@ model Order {
   created_at          DateTime @default(now())
   updated_at          DateTime @updatedAt
 
-  user          User            @relation(fields: [user_id], references: [id])
-  store         Store           @relation(fields: [store_id], references: [id])
-  orderStatus   OrderStatuses   @relation(fields: [order_status_id], references: [id])
-  orderItems    OrderItem[]
-  payments      Payment[]
-  DiscountUsage DiscountUsage[]
+  user         User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  store        Store         @relation(fields: [store_id], references: [id], onDelete: Cascade)
+  orderStatus  OrderStatuses @relation(fields: [order_status_id], references: [id], onDelete: Cascade)
+  orderItems   OrderItem[]
+  paymentProof PaymentProof?
 }
 
 model OrderStatuses {
@@ -289,33 +232,7 @@ model OrderItem {
   price_at_purchase Decimal
 
   order   Order   @relation(fields: [order_id], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [product_id], references: [id])
-}
-
-// =============================
-// Payment
-// =============================
-model PaymentMethod {
-  id   Int    @id @default(autoincrement())
-  name String
-  type String
-
-  payments Payment[]
-}
-
-model Payment {
-  id                String        @id @default(uuid())
-  order_id          Int
-  payment_method_id Int
-  amount            Decimal
-  status            PaymentStatus
-  transaction_id    String?
-  paid_at           DateTime?
-  created_at        DateTime      @default(now())
-
-  order         Order         @relation(fields: [order_id], references: [id])
-  paymentMethod PaymentMethod @relation(fields: [payment_method_id], references: [id])
-  proof         PaymentProof?
+  product Product @relation(fields: [product_id], references: [id], onDelete: Cascade)
 }
 
 model PaymentProof {
@@ -386,73 +303,4 @@ model ReferralUsage {
 
   referrer User @relation("Referrer", fields: [referrer_id], references: [id])
   referee  User @relation("Referee", fields: [referee_id], references: [id])
-}
-
-// =============================
-// Misc Tables
-// =============================
-model ProductCategory {
-  id       Int       @id @default(autoincrement())
-  category String
-  products Product[]
-}
-
-model Admins {
-  id       String @id @default(uuid())
-  user_id  String
-  store_id Int
-
-  user  User  @relation(fields: [user_id], references: [id])
-  store Store @relation(fields: [store_id], references: [id])
-}
-
-model City {
-  id          Int    @id @default(autoincrement())
-  province_id Int
-  name_city   String
-
-  province Province @relation(fields: [province_id], references: [id])
-}
-
-model Province {
-  id     Int    @id @default(autoincrement())
-  cities City[]
-}
-
-model Promotions {
-  id          String   @id @default(uuid())
-  store_id    Int
-  title       String
-  description String?
-  banner_url  String?
-  start_date  DateTime
-  end_date    DateTime
-  is_active   Boolean  @default(true)
-
-  store Store @relation(fields: [store_id], references: [id])
-}
-
-model Banners {
-  id           Int     @id @default(autoincrement())
-  store_id     Int
-  image_url    String
-  caption      String?
-  link         String?
-  order_number Int?
-
-  store Store @relation(fields: [store_id], references: [id])
-}
-
-model ShippingCosts {
-  id              Int      @id @default(autoincrement())
-  store_id        Int
-  user_address_id Int
-  courier         String
-  service_type    String
-  estimation      String?
-  cost            Decimal
-  created_at      DateTime @default(now())
-
-  store       Store       @relation(fields: [store_id], references: [id])
-  userAddress UserAddress @relation(fields: [user_address_id], references: [id])
 }
