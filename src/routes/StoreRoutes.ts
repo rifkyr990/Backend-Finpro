@@ -11,6 +11,7 @@ class StoreRoutes {
 
   private initializeRoutes() {
     this.router.get("/all", StoreController.getAllStores); //get all stores - arco
+    this.router.post("/", StoreController.createStore);
     this.router.get("/store-admins", StoreController.getAllStoreAdmin); //get all stores - arco
     this.router.delete("/:id", StoreController.deleteStoreById); // arco
     this.router.patch("/:id", StoreController.patchStoreById); // arco

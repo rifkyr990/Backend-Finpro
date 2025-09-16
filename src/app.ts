@@ -14,23 +14,23 @@ import ProductRoutes from "./routes/ProductRoutes";
 dotenv.config();
 
 class App {
-  private app: Application;
-  private port: number;
+    private app: Application;
+    private port: number;
 
-  constructor(port: number) {
-    this.app = express();
-    this.port = port;
+    constructor(port: number) {
+        this.app = express();
+        this.port = port;
 
-    this.initializeMiddlewares();
-    this.initializeRoutes();
-    this.initializeErrorHandler();
-  }
+        this.initializeMiddlewares();
+        this.initializeRoutes();
+        this.initializeErrorHandler();
+    }
 
-  private initializeMiddlewares() {
-    this.app.use(cors());
-    this.app.use(express.json());
-    this.app.use(express.urlencoded({ extended: true }));
-  }
+    private initializeMiddlewares() {
+        this.app.use(cors());
+        this.app.use(express.json());
+        this.app.use(express.urlencoded({ extended: true }));
+    }
 
     private initializeRoutes() {
         this.app.use("/api/auth", AuthRoutes);

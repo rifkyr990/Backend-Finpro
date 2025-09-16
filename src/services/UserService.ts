@@ -1,11 +1,7 @@
 import prisma from "../config/prisma";
 import cloudinary from "../config/cloudinary";
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
 import { validatePassword } from "../utils/validatePassword";
-import { sendEmail } from "../utils/email";
-import crypto from "crypto";
-import { verificationEmailTemplate } from "../templates/VerificationEmail";
 
 class UserService {
     private defaultProfileUrl = "https://res.cloudinary.com/your_cloud/image/upload/v123456789/default-profile.png";
@@ -53,15 +49,10 @@ class UserService {
         }
 
         const { first_name, last_name, bio, phone, date_of_birth, email } = data;
-
         const existingUser = await prisma.user.findUnique({
             where: { id: userId },
             select: { email: true },
         });
-
-        if (!existingUser) {
-            throw new Error("User tidak ditemukan");
-        }
 
         const updateData: any = {
             first_name,
@@ -69,62 +60,40 @@ class UserService {
             phone,
             profile: {
                 upsert: {
-                    create: { bio, date_of_birth: date_of_birth ? new Date(date_of_birth) : null },
-                    update: { bio, date_of_birth: date_of_birth ? new Date(date_of_birth) : null },
+                    create: { bio, date_of_birth },
+                    update: { bio, date_of_birth },
                 },
             },
         };
 
-        let emailChanged = false;
-        if (email && email !== existingUser.email) {
+        if (email && email !== existingUser?.email) {
             updateData.email = email;
             updateData.is_verified = false;
-            emailChanged = true;
         }
 
-        const updatedUser = await prisma.user.update({
+        const updateUser = await prisma.user.update({
             where: { id: userId },
             data: updateData,
             include: { profile: true },
         });
 
-        if (emailChanged) {
-            const token = jwt.sign(
-            { userId: updatedUser.id, email: updatedUser.email },
-            process.env.JWT_SECRET!,
-            { expiresIn: "1h" }
-        );
-
-            const verifyUrl = `${process.env.FRONTEND_URL}/auth/verify-new-email?token=${token}`;
-
-            await sendEmail({
-                to: updatedUser.email,
-                subject: "Verifikasi Email Baru",
-                text: `Klik link berikut untuk verifikasi email Anda: ${verifyUrl}`,
-                html: verificationEmailTemplate(verifyUrl),
-            });
-        }
-        return updatedUser;
+        return updateUser;
     }
 
     public async changePassword(userId: string, oldPassword: string, newPassword: string) {
         const user = await prisma.user.findUnique({ where: { id: userId }});
         if (!user?.password) throw new Error("Password tidak ditemukan");
 
-        // Cek password lama
         const isMatch = await bcrypt.compare(oldPassword, user.password);
         if (!isMatch) throw new Error("Password lama salah");
 
-        // ✅ Validasi password baru
         const error = validatePassword(newPassword);
         if (error) throw new Error(error);
-
-        // Hash password baru
         const hashed = await bcrypt.hash(newPassword, 10);
 
         await prisma.user.update({
-        where: { id: userId },
-        data: { password: hashed },
+            where: { id: userId },
+            data: { password: hashed },
         });
 
         return true;
@@ -132,22 +101,30 @@ class UserService {
 
     public async verifyNewEmail(token: string) {
         try {
-            const payload = jwt.verify(token, process.env.JWT_SECRET!) as {
-                userId: string;
-                email: string;
-            };
+            const tokenRecord = await prisma.verificationToken.findFirst({
+                where: { token },
+                include: { user: true },
+            });
+            if (
+                !tokenRecord ||
+                tokenRecord.used ||
+                tokenRecord.expires_at < new Date()
+            ) {
+                throw new Error("Token tidak valid atau sudah kadaluarsa");
+            }
 
-            const user = await prisma.user.findUnique({
-                where: { id: payload.userId },
+            if (!tokenRecord.user) {
+                throw new Error("User tidak ditemukan");
+            }
+
+            const updatedUser = await prisma.user.update({
+                where: { id: tokenRecord.user_id },
+                data: { is_verified: true },
             });
 
-            if (!user) throw new Error("User tidak ditemukan");
-            if (user.email !== payload.email) {
-                throw new Error("Email pada token tidak sesuai dengan data user");
-            }
-            const updatedUser = await prisma.user.update({
-                where: { id: payload.userId },
-                data: { is_verified: true },
+            await prisma.verificationToken.update({
+                where: { id: tokenRecord.id },
+                data: { used: true },
             });
 
             return updatedUser;

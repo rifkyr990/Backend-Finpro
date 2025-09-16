@@ -16,7 +16,6 @@ class AuthController {
         }
 
         const { user } = await AuthService.register(first_name, last_name, email);
-
         return ApiResponse.success(res, { email: user.email },"Registrasi berhasil, silakan cek email untuk verifikasi",201);
     });
 

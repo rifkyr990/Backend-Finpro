@@ -38,9 +38,9 @@ model User {
   password         String?
   role             Role     @default(CUSTOMER)
   is_verified      Boolean  @default(false)
-  image_url               String?
-  image_id                String?
-  store_id Int?
+  image_url        String?
+  image_id         String?
+  store_id         Int?
   created_at       DateTime @default(now())
   updated_at       DateTime @updatedAt
   socialLogins        SocialLogin[]
