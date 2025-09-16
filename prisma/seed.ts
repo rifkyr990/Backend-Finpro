@@ -25,6 +25,7 @@ async function main() {
   await prisma.orderStatuses.deleteMany();
   await prisma.user.deleteMany();
   await prisma.store.deleteMany();
+  await prisma.archivedStockHistory.deleteMany();
   console.log("Seeding database...");
   // --- User Seeding ---
   // const customer = await prisma.user.upsert({
@@ -213,7 +214,8 @@ async function main() {
         data: {
           store_id: store.id,
           product_id: product.id,
-          stock_quantity: faker.number.int({ min: 0, max: 100 }),
+          stock_quantity: faker.number.int({ min: 0, max: 50 }),
+          min_stock: faker.number.int({ min: 5, max: 10 }),
         },
       });
     }

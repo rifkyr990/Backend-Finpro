@@ -10,6 +10,7 @@ import { ApiResponse } from "./utils/ApiResponse";
 import CartRoutes from "./routes/CartRoutes";
 import StoreRoutes from "./routes/StoreRoutes";
 import ProductRoutes from "./routes/ProductRoutes";
+import StockRoutes from "./routes/StockRoutes";
 
 dotenv.config();
 
@@ -39,6 +40,7 @@ class App {
     this.app.use("/api/user", UserRoutes);
     this.app.use("/api/store", StoreRoutes);
     this.app.use("/api/product", ProductRoutes);
+    this.app.use("/api/stock", StockRoutes);
     // arco-end
     this.app.get("/", (req, res) => {
       return ApiResponse.success(res, null, "API is running 🚀");
