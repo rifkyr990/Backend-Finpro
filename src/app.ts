@@ -11,6 +11,7 @@ import OrderRoutes from "./routes/OrderRoutes";
 import ShippingRoutes from "./routes/ShippingRoutes";
 import StoreRoutes from "./routes/StoreRoutes";
 import ProductRoutes from "./routes/ProductRoutes";
+import PaymentRoutes from "./routes/PaymentRoutes";
 
 dotenv.config();
 
@@ -43,6 +44,7 @@ class App {
     this.app.use("/api/rajaongkir", RajaOngkirRoutes);
     this.app.use("/api/orders", OrderRoutes);
     this.app.use("/api/shipping", ShippingRoutes);
+    this.app.use("/api/payment", PaymentRoutes);
     this.app.get("/", (req, res) => {
       return ApiResponse.success(res, null, "API is running 🚀");
     });

@@ -71,7 +71,7 @@ class CartController {
 
     const { storeId, items } = req.body as {
       storeId: number;
-      items: { productId: string; quantity: number }[];
+      items: { productId: number; quantity: number }[];
     };
 
     if (typeof storeId !== "number" || !Array.isArray(items)) {
@@ -111,17 +111,19 @@ class CartController {
         select: { id: true, price: true },
       });
 
-      const validItems = items.filter((item) =>
-        products.some((p) => p.id === item.productId)
-      );
+      const productMap = new Map(products.map((p) => [p.id, p]));
 
-      await tx.cartItem.createMany({
-        data: validItems.map((i) => ({
-          cart_id: cart!.id,
-          product_id: i.productId,
-          quantity: i.quantity,
-        })),
-      });
+      const validItems = items.filter((item) => productMap.has(item.productId));
+
+      if (validItems.length > 0) {
+        await tx.cartItem.createMany({
+          data: validItems.map((i) => ({
+            cart_id: cart!.id,
+            product_id: i.productId,
+            quantity: i.quantity,
+          })),
+        });
+      }
 
       let totalQuantity = 0;
       let totalPrice = 0;

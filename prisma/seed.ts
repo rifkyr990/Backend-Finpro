@@ -1,4 +1,5 @@
 import { faker } from "@faker-js/faker";
+import { hashPassword } from "../src/utils/bcrypt";
 import {
   PrismaClient,
   Role,
@@ -58,6 +59,8 @@ async function main() {
       });
     }
 
+    const hashedPassword = await hashPassword("testpassword");
+
     const createdUser = await prisma.user.create({
       data: {
         first_name: firstName,
@@ -65,7 +68,7 @@ async function main() {
         addresses: { create: addresses },
         email: faker.internet.email({ firstName, lastName }),
         phone: faker.phone.number(),
-        password: "testpassword",
+        password: hashedPassword,
         image_url: faker.image.avatar(),
         role: roles[Math.floor(Math.random() * roles.length)]!,
         is_verified: faker.datatype.boolean(),
