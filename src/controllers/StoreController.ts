@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { ApiResponse } from "../utils/ApiResponse";
 import prisma from "../config/prisma";
+import { request } from "http";
 
 class StoreController {
   // get all stores data - arco start
@@ -15,8 +16,7 @@ class StoreController {
     } catch (error) {
       ApiResponse.error(res, "Error get all stores data", 400);
     }
-  };
-  // arco -end
+  }; //arco
 
   public static getAllStoreAdmin = async (req: Request, res: Response) => {
     try {
@@ -30,6 +30,7 @@ class StoreController {
               first_name: true,
               last_name: true,
               role: true,
+              phone: true,
             },
           },
         },
@@ -39,6 +40,32 @@ class StoreController {
       ApiResponse.error(res, "Get All Store Admin Failed", 400);
     }
   }; // arco
+
+  public static postNewAdmin = async (req: Request, res: Response) => {
+    try {
+      const { first_name, last_name, email, password, store_id, phone } =
+        req.body;
+      console.log(req.body);
+      const data = await prisma.user.create({
+        data: {
+          first_name,
+          last_name,
+          password,
+          email,
+          store_id: store_id,
+          phone,
+          is_verified: false,
+          role: "STORE_ADMIN",
+          image_url: "https://iili.io/KRwBd91.png",
+        },
+      });
+      ApiResponse.success(res, data, "Create New Store Admin Success", 200);
+    } catch (error) {
+      ApiResponse.error(res, "Create new store admin error");
+      console.log(error);
+    }
+  }; //arco
+
   public static deleteStoreById = async (req: Request, res: Response) => {
     try {
       const storeId = Number(req.params.id);

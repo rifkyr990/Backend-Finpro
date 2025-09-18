@@ -11,6 +11,7 @@ import CartRoutes from "./routes/CartRoutes";
 import StoreRoutes from "./routes/StoreRoutes";
 import ProductRoutes from "./routes/ProductRoutes";
 import StockRoutes from "./routes/StockRoutes";
+import DiscountRoutes from "./routes/DiscountRoutes";
 
 dotenv.config();
 
@@ -41,6 +42,7 @@ class App {
     this.app.use("/api/store", StoreRoutes);
     this.app.use("/api/product", ProductRoutes);
     this.app.use("/api/stock", StockRoutes);
+    this.app.use("/api/discount", DiscountRoutes);
     // arco-end
     this.app.get("/", (req, res) => {
       return ApiResponse.success(res, null, "API is running 🚀");

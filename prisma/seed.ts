@@ -9,6 +9,7 @@ import {
   Store,
   ProductCategory,
   Product,
+  ValueType,
 } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -26,6 +27,10 @@ async function main() {
   await prisma.user.deleteMany();
   await prisma.store.deleteMany();
   await prisma.archivedStockHistory.deleteMany();
+  await prisma.discountUsage.deleteMany();
+  await prisma.discount.deleteMany();
+  await prisma.orderItem.deleteMany();
+  await prisma.order.deleteMany();
   console.log("Seeding database...");
   // --- User Seeding ---
   // const customer = await prisma.user.upsert({
@@ -182,16 +187,17 @@ async function main() {
 
   for (let i = 0; i < 10; i++) {
     const randomCategory = faker.helpers.arrayElement(createdCategories);
-
+    const name = faker.commerce.productName() + " - " + i;
     const product = await prisma.product.create({
       data: {
-        name: faker.commerce.product(),
+        name,
         description: faker.commerce.productDescription(),
         price: faker.commerce.price({
           min: 10000,
           max: 200000,
         }),
         is_active: faker.datatype.boolean(),
+        is_deleted: false,
         category_id: randomCategory.id,
       },
     });
@@ -349,7 +355,18 @@ async function main() {
   //   },
   // });
 
-  // --- Order Statuses Seeding ---
+  // --- ORDER STATUSES SEEDING  ---
+  console.log("Seeding Order Statuses . . .");
+  await Promise.all(
+    Object.values(OrderStatus).map((status) =>
+      prisma.orderStatuses.upsert({
+        where: { status },
+        update: {},
+        create: { status },
+      })
+    )
+  );
+  const orderStatuses = await prisma.orderStatuses.findMany();
   // await Promise.all(
   //   Object.values(OrderStatus).map((status) =>
   //     prisma.orderStatuses.upsert({
@@ -361,7 +378,7 @@ async function main() {
   // );
 
   // --- CART SEEDING ---
-  console.log("Seeding cart for default customer...");
+  // console.log("Seeding cart for default customer...");
   // const customer = customers.find(
   //   (customer) => customer.role === Role.CUSTOMER
   // );
@@ -416,9 +433,145 @@ async function main() {
   //   });
   // }
 
+  // DISCOUNT SEEDING
+  console.log("Seeding Discount. . .");
+  const discounts: Prisma.PromiseReturnType<typeof prisma.discount.create>[] =
+    [];
+  const discountTypes = ["MANUAL", "MIN_PURCHASE", "B1G1"] as const;
+  const valueTypes = ["NOMINAL", "PERCENTAGE"] as const;
+
+  for (let i = 0; i < 10; i++) {
+    const randomProduct = faker.helpers.arrayElement(createdProducts);
+    const randomStore = faker.helpers.arrayElement(stores);
+    const type = faker.helpers.arrayElement(discountTypes);
+
+    // let valueType: ValueType | null = null;
+    let minPurch: Prisma.Decimal | null = null;
+    let minQty: number | null = null;
+    let freeQty: number | null = null;
+    let discAmount: Prisma.Decimal | null = null;
+    let valueType =
+      type === "MANUAL" || type === "MIN_PURCHASE"
+        ? faker.helpers.arrayElement(valueTypes)
+        : null; // Hanya set valueType jika diperlukan
+
+    switch (type) {
+      case "MANUAL":
+        valueType = faker.helpers.arrayElement(["NOMINAL", "PERCENTAGE"]);
+        if (valueType === "NOMINAL") {
+          discAmount = new Prisma.Decimal(
+            faker.number.int({ min: 5000, max: 100000 })
+          );
+        } else {
+          discAmount = new Prisma.Decimal(
+            faker.number.int({ min: 5, max: 50 })
+          );
+        }
+        break;
+      case "MIN_PURCHASE":
+        valueType = faker.helpers.arrayElement(["NOMINAL", "PERCENTAGE"]);
+        if (valueType === "NOMINAL") {
+          discAmount = new Prisma.Decimal(
+            faker.number.int({ min: 5000, max: 100000 })
+          );
+        } else {
+          discAmount = new Prisma.Decimal(
+            faker.number.int({ min: 5, max: 50 })
+          );
+        }
+        minPurch = new Prisma.Decimal(
+          faker.number.int({ min: 50000, max: 500000 })
+        );
+        break;
+      case "B1G1":
+        minQty = faker.number.int({ min: 2, max: 10 });
+        freeQty = 1;
+        break;
+    }
+
+    const discount = await prisma.discount.create({
+      data: {
+        name: faker.commerce.productName(),
+        product_id: randomProduct.id,
+        store_id: randomStore.id,
+        code: faker.string.alphanumeric(8).toUpperCase(),
+        description: faker.commerce.productDescription(),
+        type,
+        valueType,
+        minPurch,
+        minQty,
+        freeQty,
+        discAmount,
+        start_date: faker.date.recent({ days: 10 }),
+        end_date: faker.date.anytime(),
+      },
+    });
+
+    discounts.push(discount);
+  }
+
+  // ORDER AND ORDR ITEM SEEDING
+  console.log("Seeding Orders and Order Items ...");
+  const orders = [];
+  for (let i = 0; i < 20; i++) {
+    const customer = faker.helpers.arrayElement(customers);
+    const store = faker.helpers.arrayElement(stores);
+    const orderStatus = faker.helpers.arrayElement(orderStatuses);
+
+    const order = await prisma.order.create({
+      data: {
+        user_id: customer.id,
+        store_id: store.id,
+        order_status_id: orderStatus.id,
+        destination_address: faker.location.streetAddress(),
+        latitude: faker.location.latitude(),
+        longitude: faker.location.longitude(),
+        total_price: new Prisma.Decimal(0),
+      },
+    });
+    orders.push(order);
+
+    // create 1 -> 5 order items
+    const productCount = faker.number.int({ min: 1, max: 5 });
+    let orderTotal = new Prisma.Decimal(0);
+    for (let i = 0; i < productCount; i++) {
+      const product = faker.helpers.arrayElement(createdProducts);
+      const qty = faker.number.int({ min: 1, max: 5 });
+      const unitPrice = new Prisma.Decimal(product.price as unknown as string);
+      const priceAtPurchase = unitPrice;
+      await prisma.orderItem.create({
+        data: {
+          order_id: order.id,
+          product_id: product.id,
+          quantity: qty,
+          price_at_purchase: priceAtPurchase,
+        },
+      });
+      orderTotal = orderTotal.add(priceAtPurchase.mul(qty));
+    }
+    await prisma.order.update({
+      where: { id: order.id },
+      data: { total_price: orderTotal },
+    });
+  }
+  // DISCOUNT USAGE SEEDING
+  console.log("Seeding Discount Usage . . . ");
+  for (let i = 0; i < 30; i++) {
+    const discount = faker.helpers.arrayElement(discounts);
+    const customer = faker.helpers.arrayElement(customers);
+    const order = faker.helpers.arrayElement(orders);
+    await prisma.discountUsage.create({
+      data: {
+        discount_id: discount.id,
+        user_id: customer.id,
+        order_id: order.id,
+        status: faker.helpers.arrayElement(["APPLIED", "CANCELLED"]),
+        useAt: faker.date.recent({ days: 30 }),
+      },
+    });
+  }
   console.log("Seeding completed!");
 }
-
 main()
   .catch((e) => {
     console.error(e);

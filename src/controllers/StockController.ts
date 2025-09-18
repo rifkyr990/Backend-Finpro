@@ -90,7 +90,7 @@ class StockController {
             reason,
             order_id: 123456,
             productStockId: updateStock.id,
-            user_id: "01c9874c-8985-40f1-8bde-b0d93aae9c1e", //dummy user sementara
+            // user_id: "01c9874c-8985-40f1-8bde-b0d93aae9c1e", //dummy user sementara
           },
         });
         return { updateStock, createStockHistory };

@@ -15,6 +15,8 @@ class UserRoutes {
     this.router.get("/all", UserController.getAllUsers); // arco
     this.router.get("/customers", UserController.getAllCustomers); // arco
     this.router.delete("/:id", UserController.deleteUserById); // arco
+    this.router.patch("/update-user/:id", UserController.updateUser); // arco
+    this.router.get("/:id", UserController.getUserById); // arco
     this.router.patch("/new-admin/:id", UserController.assignAdminbyId); // arco
     this.router.patch("/revert-admin/:id", UserController.revertAdminbyId); // arco
     this.router.get("/profile", authMiddleware(), UserController.getProfile);

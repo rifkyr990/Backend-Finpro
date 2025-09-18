@@ -6,9 +6,43 @@ import { stat } from "fs";
 import cloudinary from "../config/cloudinary";
 
 class ProductController {
+  // untuk landing page
+  public static getLandingProduct = async (req: Request, res: Response) => {
+    try {
+      const productData = await prisma.product.findMany({
+        where: {
+          is_deleted: false,
+          is_active: true,
+        },
+        include: {
+          stocks: {
+            select: {
+              store: true,
+              stock_quantity: true,
+            },
+          },
+          images: true,
+          category: true,
+        },
+      });
+      ApiResponse.success(
+        res,
+        productData,
+        "Get All Landing Product Success",
+        200
+      );
+    } catch (error) {
+      ApiResponse.error(res, "Get All Landing Product Error", 400);
+    }
+  };
+
+  // untuk product list di dashboard
   public static getAllProduct = async (req: Request, res: Response) => {
     try {
       const productData = await prisma.product.findMany({
+        where: {
+          is_deleted: false,
+        },
         include: {
           stocks: {
             select: {
@@ -25,6 +59,29 @@ class ProductController {
       ApiResponse.success(res, productData, "Get All Product Success", 200);
     } catch (error) {
       ApiResponse.error(res, "Get All Product Error", 400);
+    }
+  };
+
+  // khusus untuk product details by Id
+  public static getProductById = async (req: Request, res: Response) => {
+    try {
+      const product_id = Number(req.params.id);
+      const result = await prisma.product.findUnique({
+        where: { id: product_id },
+        include: {
+          images: true,
+          category: true,
+          stocks: {
+            select: {
+              stock_quantity: true,
+              store: true,
+            },
+          },
+        },
+      });
+      ApiResponse.success(res, result, "Get Product By ID Success", 200);
+    } catch (error) {
+      ApiResponse.error(res, "Get Product By Id Error", 400);
     }
   };
   public static getAllProductByLocation = async (
@@ -45,6 +102,8 @@ class ProductController {
       // if city exist, check both province and city
       let result = await prisma.product.findMany({
         where: {
+          is_active: true,
+          is_deleted: false,
           stocks: {
             some: {
               store: { province, ...(city ? { city } : {}) },
@@ -85,6 +144,8 @@ class ProductController {
       if (city && result.length === 0) {
         result = await prisma.product.findMany({
           where: {
+            is_active: true,
+            is_deleted: false,
             stocks: {
               some: {
                 store: {
@@ -152,6 +213,104 @@ class ProductController {
       ApiResponse.error(res, "Get Product by Province Error", 400);
     }
   };
+  public static getAllProductByStoreId = async (
+    req: Request,
+    res: Response
+  ) => {
+    try {
+      const store_id = Number(req.params.id);
+      const result = await prisma.productStocks.findMany({
+        where: {
+          store_id: store_id,
+        },
+        select: {
+          product: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      });
+      ApiResponse.success(res, result, "Get Product by Store Id Success", 200);
+    } catch (error) {
+      console.log(error);
+      ApiResponse.error(res, "Get Products by Store Id Error");
+    }
+  };
+  public static updateProductById = async (req: Request, res: Response) => {
+    try {
+      const productId = Number(req.params.id);
+      const { name, description, price, category } = req.body;
+      console.log(productId);
+      console.log(req.body);
+
+      if (!name || !description || !price || !category)
+        return ApiResponse.error(res, "Semua field wajib diisi", 400);
+
+      // Cari data product dulu
+      const productData = await prisma.product.findUnique({
+        where: { id: productId },
+        include: { images: true, category: true },
+      });
+      if (!productData)
+        return ApiResponse.error(res, "Product tidak ditemukan", 404);
+
+      // Cari category ID
+      const categoryData = await prisma.productCategory.findUnique({
+        where: { category },
+      });
+      if (!categoryData)
+        return ApiResponse.error(res, "Kategori tidak ditemukan", 400);
+
+      let uploadedImageUrls: string[] = [];
+
+      // Jika ada file baru, upload ke Cloudinary
+      if (req.files && (req.files as Express.Multer.File[]).length > 0) {
+        for (const file of req.files as Express.Multer.File[]) {
+          const uploaded = await new Promise<any>((resolve, reject) => {
+            cloudinary.uploader
+              .upload_stream(
+                { folder: "product_images", resource_type: "image" },
+                (error, result) => {
+                  if (error) reject(error);
+                  else resolve(result);
+                }
+              )
+              .end(file.buffer);
+          });
+          uploadedImageUrls.push(uploaded.secure_url);
+        }
+      }
+
+      // Build data update untuk Prisma
+      const dataToUpdate: any = {
+        name,
+        description,
+        price: price.toString(), // jika di schema price = string
+        category: { connect: { id: categoryData.id } },
+      };
+
+      // Jika ada gambar baru, replace semua gambar lama
+      if (uploadedImageUrls.length > 0) {
+        dataToUpdate.images = {
+          deleteMany: {},
+          create: uploadedImageUrls.map((url) => ({ image_url: url })),
+        };
+      }
+
+      const updatedProduct = await prisma.product.update({
+        where: { id: productId },
+        data: dataToUpdate,
+        include: { images: true, category: true },
+      });
+      ApiResponse.success(res, updatedProduct, "Update Product Success", 200);
+    } catch (error) {
+      ApiResponse.error(res, "Update Product By ID Error", 400);
+      console.log(error);
+    }
+  };
+
   public static getProductbyCategories = async (
     req: Request,
     res: Response
@@ -159,13 +318,20 @@ class ProductController {
     try {
       // Ambil semua kategori dari tabel productCategory
       const categories = await prisma.productCategory.findMany({
+        where: {
+          is_deleted: false,
+        },
         orderBy: {
           category: "asc",
         },
       });
 
-      // Ambil semua produk dengan kategori-nya
+      // Ambil semua produk dengan kategori yang tidak soft-delete
       const products = await prisma.product.findMany({
+        where: {
+          is_active: true,
+          is_deleted: false,
+        },
         include: {
           category: true,
         },
@@ -191,11 +357,18 @@ class ProductController {
   public static deleteCategory = async (req: Request, res: Response) => {
     try {
       const categoryName = req.body.cleanData;
+      console.log(categoryName);
       if (!categoryName)
         return ApiResponse.error(res, "Category Name is required", 400);
-      const existingCategory = await prisma.productCategory.findFirst({
-        where: { category: categoryName },
+      // Ambil semua kategori yang belum dihapus
+      const categories = await prisma.productCategory.findMany({
+        where: { is_deleted: false },
       });
+
+      // Cari kategori yang cocok (case-insensitive)
+      const existingCategory = categories.find(
+        (cat) => cat.category.trim().toLowerCase() === categoryName
+      );
       if (!existingCategory)
         return ApiResponse.error(res, "Category not found", 404);
 
@@ -209,23 +382,42 @@ class ProductController {
         });
       }
 
-      await prisma.$transaction([
-        prisma.product.updateMany({
-          where: {
-            category_id: existingCategory.id,
-          },
-          data: {
-            category_id: fallbackCategory.id,
-          },
+      // transaction alurnya : soft delete categorynya, lalu oper kategori produknya ke "others" category
+      const result = await prisma.$transaction([
+        // soft delete dulu
+        prisma.productCategory.update({
+          where: { id: existingCategory.id },
+          data: { is_deleted: true },
         }),
-        prisma.productCategory.delete({
-          where: {
-            id: existingCategory.id,
-          },
+        // oper sisa product ke "Others" category
+        prisma.product.updateMany({
+          where: { category_id: existingCategory.id },
+          data: { category_id: fallbackCategory.id },
         }),
       ]);
 
-      return ApiResponse.success(res, null, "Kategori berhasil dihapus", 200);
+      // await prisma.$transaction([
+      //   prisma.product.updateMany({
+      //     where: {
+      //       category_id: existingCategory.id,
+      //     },
+      //     data: {
+      //       category_id: fallbackCategory.id,
+      //     },
+      //   }),
+      //   prisma.productCategory.delete({
+      //     where: {
+      //       id: existingCategory.id,
+      //     },
+      //   }),
+      // ]);
+
+      return ApiResponse.success(
+        res,
+        result,
+        "Kategori berhasil soft-delete",
+        200
+      );
     } catch (error) {
       ApiResponse.error(res, "Delete category error", 400);
     }
@@ -233,6 +425,7 @@ class ProductController {
   public static editCategory = async (req: Request, res: Response) => {
     try {
       const { newCat, oldCat } = req.body.data;
+      console.log(newCat, oldCat);
       // console.log(newCat, oldCat);
       if (newCat === oldCat)
         return ApiResponse.error(res, "There is an existing data", 400);
@@ -243,6 +436,7 @@ class ProductController {
       ApiResponse.success(res, updateCategory, "Update Category Success", 200);
     } catch (error) {
       ApiResponse.error(res, "Edit Category Error", 400);
+      console.log(error);
     }
   };
   public static deleteProduct = async (req: Request, res: Response) => {
@@ -430,6 +624,20 @@ class ProductController {
       ApiResponse.success(res, newProduct, "Create new product success", 200);
     } catch (error) {
       ApiResponse.error(res, "Create new product error", 400);
+    }
+  };
+
+  public static softDeleteProduct = async (req: Request, res: Response) => {
+    try {
+      const ids: number[] = req.body.data;
+      const softDeletePrd = await prisma.product.updateMany({
+        where: { id: { in: ids } },
+        data: { is_deleted: true, is_active: false },
+      });
+      ApiResponse.success(res, softDeletePrd, "Soft Delete Success", 200);
+    } catch (error) {
+      console.log(error);
+      ApiResponse.error(res, "Soft Delete Error", 400);
     }
   };
 }

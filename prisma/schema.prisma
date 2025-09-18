@@ -34,6 +34,27 @@ enum StockChangeType {
   ADJUSTMENT
   REMOVED
 }
+enum DiscountType {
+  MANUAL
+  MIN_PURCHASE
+  B1G1
+  FREE_ONGKIR
+}
+
+enum DiscountUsageStatus {
+  APPLIED
+  CANCELLED
+}
+
+enum ReferralUsageStatus {
+  PENDING
+  APPLIED
+  EXPIRED
+}
+enum ValueType {
+  NOMINAL
+  PERCENTAGE
+}
 
 model User {
   id               String @id @default(uuid())
@@ -59,6 +80,11 @@ model User {
   store Store? @relation(fields: [store_id], references: [id],onDelete: SetNull)
   history StockHistory[]
   archived_stock_history ArchivedStockHistory[]
+   discountUsage            DiscountUsage[]
+   referrals                Referral[]
+  referralUsagesAsReferrer ReferralUsage[]      @relation("Referrer")
+  referralUsagesAsReferee  ReferralUsage[]      @relation("Referee")
+
 }
 
 model SocialLogin {
@@ -122,17 +148,22 @@ model UserAddress {
 model Product {
   id          Int      @id @default(autoincrement())
   category_id Int
-  name        String
+  name        String @unique
   description String?
   price       String
   is_active   Boolean  @default(true)
   created_at  DateTime @default(now())
+  is_deleted Boolean @default(false)
 
   cartItems  CartItem[]
   orderItems OrderItem[]
   stocks     ProductStocks[]
   images     ProductImage[]
+  discounts Discount[]
   category ProductCategory @relation(fields: [category_id],references: [id], onDelete: Cascade)
+
+
+
 }
 
 model ProductImage {
@@ -180,14 +211,15 @@ model ArchivedStockHistory {
   stock_quantity Int
   reason String
   archived_at DateTime @default(now())
-  user_id String
-  created_by User @relation(fields: [user_id],references: [id],onDelete: Cascade)
+  user_id String?
+  created_by User? @relation(fields: [user_id],references: [id],onDelete: Cascade)
 }
 
 model ProductCategory {
   id Int @id @default(autoincrement())
   category String @unique
   products Product[]
+  is_deleted Boolean @default(false)
 }
 
 model Store {
@@ -207,6 +239,7 @@ model Store {
   orders Order[]
   cart   Cart[]
   stocks ProductStocks[]
+  discount Discount[]
 }
 
 model Cart {
@@ -252,6 +285,7 @@ model Order {
   orderStatus  OrderStatuses @relation(fields: [order_status_id], references: [id],onDelete: Cascade)
   orderItems   OrderItem[]
   paymentProof PaymentProof?
+    DiscountUsage DiscountUsage[]
 }
 
 model OrderStatuses {
@@ -278,4 +312,65 @@ model PaymentProof {
   created_at DateTime @default(now())
 
   order Order @relation(fields: [order_id], references: [id], onDelete: Cascade)
+}
+
+model Discount {
+    id               Int          @id @default(autoincrement())
+    name String
+  product_id       Int?
+  store_id         Int?
+  code             String
+  description      String?
+  type             DiscountType
+  // isFreeShipping   Boolean      @default(false)
+  minPurch         Decimal?
+  minQty           Int?
+  freeQty          Int?
+  discAmount       Decimal?
+  valueType ValueType?
+  // maxUsage_perUser Int?
+  // maxUsage Int
+  start_date DateTime
+  end_date DateTime
+  is_deleted Boolean @default(false)
+  createdAt        DateTime     @default(now())
+
+  product Product?        @relation(fields: [product_id], references: [id])
+  store   Store?          @relation(fields: [store_id], references: [id])
+  usage  DiscountUsage[]
+}
+model DiscountUsage {
+  id          Int                 @id @default(autoincrement())
+  discount_id Int
+  user_id     String?
+  order_id    Int?
+  status      DiscountUsageStatus
+  useAt       DateTime            @default(now())
+
+  discount Discount @relation(fields: [discount_id], references: [id], onDelete: Cascade)
+  user     User?     @relation(fields: [user_id], references: [id],onDelete: Cascade)
+  order    Order?    @relation(fields: [order_id], references: [id],onDelete: Cascade)
+}
+
+model Referral {
+  id            String   @id @default(uuid())
+  user_id       String
+  referral_code String   @unique
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id])
+}
+
+model ReferralUsage {
+  id            Int                 @id @default(autoincrement())
+  referrer_id   String
+  referee_id    String
+  referral_code String
+  reward_value  Decimal?
+  expiredAt     DateTime?
+  status        ReferralUsageStatus
+  createdAt     DateTime            @default(now())
+
+  referrer User @relation("Referrer", fields: [referrer_id], references: [id])
+  referee  User @relation("Referee", fields: [referee_id], references: [id])
 }
