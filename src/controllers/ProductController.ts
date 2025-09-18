@@ -1,9 +1,8 @@
 import { Request, Response } from "express";
-import { ApiResponse } from "../utils/ApiResponse";
-import prisma from "../config/prisma";
-import { getDistance } from "../utils/nearestStoreHaversine";
-import { stat } from "fs";
 import cloudinary from "../config/cloudinary";
+import prisma from "../config/prisma";
+import { ApiResponse } from "../utils/ApiResponse";
+import { getDistance } from "../utils/nearestStoreHaversine";
 
 class ProductController {
   // untuk landing page
