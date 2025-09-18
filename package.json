@@ -14,7 +14,11 @@
   "description": "",
   "dependencies": {
     "@prisma/client": "^6.15.0",
+<<<<<<< HEAD
     "axios": "^1.12.2",
+=======
+    "axios": "^1.12.1",
+>>>>>>> 1dd34d1c7f4ec253880fd4581df9bfb17ad9c9c9
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.7.0",
     "cors": "^2.8.5",
@@ -23,6 +27,7 @@
     "express": "^5.1.0",
     "google-auth-library": "^10.3.0",
     "jsonwebtoken": "^9.0.2",
+    "midtrans-client": "^1.4.3",
     "multer": "^2.0.2",
     "nodemailer": "^7.0.5",
     "uuid": "^11.1.0"

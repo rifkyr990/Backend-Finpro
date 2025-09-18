@@ -1,5 +1,5 @@
-// prisma/seed.ts
 import { faker } from "@faker-js/faker";
+import { hashPassword } from "../src/utils/bcrypt";
 import {
   PrismaClient,
   Role,
@@ -15,15 +15,23 @@ import {
 const prisma = new PrismaClient();
 
 async function main() {
-  // Clear existing db
-  console.log("Remove Existing Data");
+  console.log("Removing Existing Data...");
   await prisma.cartItem.deleteMany();
   await prisma.cart.deleteMany();
+  await prisma.stockHistory.deleteMany();
   await prisma.productStocks.deleteMany();
   await prisma.productImage.deleteMany();
+  await prisma.discountUsage.deleteMany();
+  await prisma.discount.deleteMany();
+  await prisma.orderItem.deleteMany();
+  await prisma.paymentProof.deleteMany();
+  await prisma.payment.deleteMany();
+  await prisma.order.deleteMany();
+  await prisma.orderStatuses.deleteMany();
+  await prisma.paymentMethod.deleteMany();
   await prisma.product.deleteMany();
   await prisma.productCategory.deleteMany();
-  await prisma.orderStatuses.deleteMany();
+  await prisma.userAddress.deleteMany();
   await prisma.user.deleteMany();
   await prisma.store.deleteMany();
   await prisma.archivedStockHistory.deleteMany();
@@ -32,34 +40,18 @@ async function main() {
   await prisma.orderItem.deleteMany();
   await prisma.order.deleteMany();
   console.log("Seeding database...");
-  // --- User Seeding ---
-  // const customer = await prisma.user.upsert({
-  //   where: { email: "customer@example.com" },
-  //   update: {},
-  //   create: {
-  //     // id: 1, // Explicitly set ID for stable relations
-  //     first_name: "John",
-  //     last_name: "Doe",
-  //     email: "customer@example.com",
-  //     password: "hashedpassword",
-  //     role: Role.CUSTOMER,
 
-  //   },
-  // });
-
-  // --USER SEEDING #2 (30 Dummy data) -- arco
   const customers: User[] = [];
-
   const roles = Object.values(Role) as Role[];
   for (let i = 0; i < 30; i++) {
     const firstName = faker.person.firstName();
     const lastName = faker.person.lastName();
 
     const addresses: Prisma.UserAddressCreateWithoutUserInput[] = [];
-    for (let i = 0; i < 3; i++) {
+    for (let j = 0; j < 2; j++) {
       addresses.push({
         name: faker.person.fullName(),
-        phone: faker.phone.number({ style: "international" }),
+        phone: faker.phone.number(),
         label: faker.helpers.arrayElement(["RUMAH", "KANTOR"]),
         province: faker.location.state(),
         city: faker.location.city(),
@@ -68,124 +60,69 @@ async function main() {
         street: faker.location.streetAddress(),
         latitude: faker.location.latitude(),
         longitude: faker.location.longitude(),
-        is_primary: i === 0, // hanya alamat pertama sebagai primary
+        is_primary: j === 0,
       });
     }
 
-    const email = faker.internet.email({ firstName, lastName });
-    const phoneNumber = faker.phone.number({ style: "international" });
-    const password = "test";
-    const image_url = faker.image.avatar();
-    const role = roles[Math.floor(Math.random() * roles.length)];
-    const isVerified = faker.datatype.boolean();
+    const hashedPassword = await hashPassword("testpassword");
 
     const createdUser = await prisma.user.create({
       data: {
         first_name: firstName,
         last_name: lastName,
-        addresses: {
-          create: addresses,
-        },
-        email: email,
-        phone: phoneNumber,
-        password: password,
-        image_url: image_url,
-        role: role!,
-        is_verified: isVerified,
+        addresses: { create: addresses },
+        email: faker.internet.email({ firstName, lastName }),
+        phone: faker.phone.number(),
+        password: hashedPassword,
+        image_url: faker.image.avatar(),
+        role: roles[Math.floor(Math.random() * roles.length)]!,
+        is_verified: faker.datatype.boolean(),
       },
     });
-
     customers.push(createdUser);
   }
 
-  // --- STORE SEEDING ---
-  // const storeJakarta = await prisma.store.upsert({
-  //   where: { id: 1 },
-  //   update: {},
-  //   create: {
-  //     id: 1,
-  //     name: "GrocerApp Jakarta",
-  //     address: "Jl. Jenderal Sudirman No.Kav. 52-53",
-  //     latitude: -6.2246,
-  //     longitude: 106.8096,
-  //     is_main_store: true,
-  //   },
-  // });
-
-  // const storeSurabaya = await prisma.store.upsert({
-  //   where: { id: 2 },
-  //   update: {},
-  //   create: {
-  //     id: 2,
-  //     name: "GrocerApp Surabaya",
-  //     address: "Jl. Basuki Rahmat No.8-12",
-  //     latitude: -7.2665,
-  //     longitude: 112.7423,
-  //   },
-  // });
   const stores: Store[] = [];
   for (let i = 0; i < 10; i++) {
-    const storeName = faker.company.name();
-    const address = faker.location.streetAddress();
-    const province = faker.location.county();
-    const city = faker.location.city();
-    const latitude = faker.location.latitude();
-    const longitude = faker.location.longitude();
-    const isActive = faker.datatype.boolean();
-    const isMainStore = faker.datatype.boolean();
-
     const createdStore = await prisma.store.create({
       data: {
-        name: storeName,
-        address: address,
-        province: province,
-        city: city,
-        latitude: latitude,
-        longitude: longitude,
-        is_active: isActive,
-        is_main_store: isMainStore,
+        name: faker.company.name(),
+        address: faker.location.streetAddress(),
+        province: faker.location.state(),
+        city: faker.location.city(),
+        latitude: faker.location.latitude(),
+        longitude: faker.location.longitude(),
+        is_active: faker.datatype.boolean(),
+        is_main_store: i === 0,
       },
     });
     stores.push(createdStore);
   }
-  // ---STORE ADMIN SEEDING---
-  console.log("Seeding Store Admins");
 
+  console.log("Seeding Store Admins...");
   for (const store of stores) {
-    const adminCount = faker.number.int({ min: 1, max: 5 });
+    const adminCount = faker.number.int({ min: 1, max: 2 });
     const selectedUsers = faker.helpers.arrayElements(customers, adminCount);
     for (const user of selectedUsers) {
-      // update role
       await prisma.user.update({
         where: { id: user.id },
-        data: {
-          store_id: store.id,
-          role: Role.STORE_ADMIN,
-        },
+        data: { store_id: store.id, role: Role.STORE_ADMIN },
       });
     }
   }
 
-  // --- PRODUCT AND PRODUCT IMAGE SEEDING ---
-  console.log("Seeding Product Category");
-  const categories = ["Fashion", "Teknologi", "Sports", "Hobby"];
-  type CategoryType = {
-    id: number;
-    category: string;
-  };
-  const createdCategories: CategoryType[] = [];
-  const createdProducts: Product[] = [];
+  console.log("Seeding Product Categories...");
+  const categories = ["Groceries", "Electronics", "Fashion", "Sports"];
+  const createdCategories: ProductCategory[] = [];
   for (const categoryName of categories) {
     const category = await prisma.productCategory.create({
       data: { category: categoryName },
     });
     createdCategories.push(category);
   }
-  //
 
-  console.log("Seeding Product and Product Image");
-
-  for (let i = 0; i < 10; i++) {
+  console.log("Seeding Products and Stocks...");
+  for (let i = 0; i < 50; i++) {
     const randomCategory = faker.helpers.arrayElement(createdCategories);
     const name = faker.commerce.productName() + " - " + i;
     const product = await prisma.product.create({
@@ -202,18 +139,12 @@ async function main() {
       },
     });
 
-    createdProducts.push(product);
-
-    // image
-    const imageCount = faker.number.int({ min: 1, max: 4 });
-    for (let i = 0; i < imageCount; i++) {
-      await prisma.productImage.create({
-        data: {
-          product_id: product.id,
-          image_url: faker.image.urlPicsumPhotos({ width: 500, height: 300 }),
-        },
-      });
-    }
+    await prisma.productImage.create({
+      data: {
+        product_id: product.id,
+        image_url: faker.image.urlLoremFlickr({ category: "food" }),
+      },
+    });
 
     for (const store of stores) {
       await prisma.productStocks.create({
@@ -226,49 +157,36 @@ async function main() {
       });
     }
   }
-  //
 
-  // const apple = await prisma.product.upsert({
-  //   where: { id: 1 },
-  //   update: {},
-  //   create: {
-  //     id: 1,
-  //     name: "Organic Fuji Apples",
-  //     description: "Pack of 6, freshly sourced from local farms",
-  //     price: 55000,
-  //   },
-  // });
-  // await prisma.productImage.upsert({
-  //   where: { id: 1 },
-  //   update: {},
-  //   create: {
-  //     id: 1,
-  //     product_id: apple.id,
-  //     image_url:
-  //       "https://images.unsplash.com/photo-1567306226416-28f0efdc88ce?w=500&q=80",
-  //   },
-  // });
+  console.log("Seeding Order Statuses...");
+  const statuses = [
+    { id: 1, status: OrderStatus.PENDING_PAYMENT },
+    { id: 2, status: OrderStatus.PAID },
+    { id: 3, status: OrderStatus.PROCESSING },
+    { id: 4, status: OrderStatus.SHIPPED },
+    { id: 5, status: OrderStatus.DELIVERED },
+    { id: 6, status: OrderStatus.CANCELLED },
+    { id: 7, status: OrderStatus.REFUNDED },
+  ];
+  for (const s of statuses) {
+    await prisma.orderStatuses.upsert({
+      where: { id: s.id },
+      update: {},
+      create: s,
+    });
+  }
 
-  // const almondMilk = await prisma.product.upsert({
-  //   where: { id: 2 },
-  //   update: {},
-  //   create: {
-  //     id: 2,
-  //     name: "Almond Milk - Unsweetened",
-  //     description: "1L carton, dairy-free and vegan",
-  //     price: 32000,
-  //   },
-  // });
-  // await prisma.productImage.upsert({
-  //   where: { id: 2 },
-  //   update: {},
-  //   create: {
-  //     id: 2,
-  //     product_id: almondMilk.id,
-  //     image_url:
-  //       "https://images.unsplash.com/photo-1583337130417-b2df30b9e1b3?w=500&q=80",
-  //   },
-  // });
+  console.log("Seeding Payment Methods...");
+  await prisma.paymentMethod.upsert({
+    where: { id: 1 },
+    update: {},
+    create: { id: 1, name: "Manual Bank Transfer", type: "MANUAL" },
+  });
+  await prisma.paymentMethod.upsert({
+    where: { id: 2 },
+    update: {},
+    create: { id: 2, name: "Payment Gateway", type: "GATEWAY" },
+  });
 
   // const bread = await prisma.product.upsert({
   //   where: { id: 3 },
