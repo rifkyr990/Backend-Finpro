@@ -165,11 +165,22 @@ class StockController {
     res: Response
   ) => {
     try {
-      const { storeId } = req.query;
-      const whereClause =
-        storeId && storeId !== "all"
-          ? { productStock: { store_id: Number(storeId) } }
-          : {};
+      const { storeId, month, year } = req.query;
+      // ambil bulan & tahun dari query
+      const startDate = new Date(Number(year), Number(month) - 1, 1);
+      const endDate = new Date(Number(year), Number(month), 0, 23, 59, 59, 999);
+      //
+      // console.log(month, year);
+      const whereClause: any = {
+        created_at: {
+          gte: startDate,
+          lte: endDate,
+        },
+      };
+
+      if (storeId && storeId !== "all") {
+        whereClause.productStock = { store_id: Number(storeId) };
+      }
       const stockHistory = await prisma.stockHistory.findMany({
         where: whereClause,
         select: {
@@ -210,10 +221,10 @@ class StockController {
         .filter((s) => s.type === "OUT")
         .reduce((acc, s) => acc + s.quantity, 0);
 
-      const totalLatestStock = stockHistory.reduce(
-        (acc, s) => acc + s.updated_stock,
-        0
-      );
+      const totalLatestStock =
+        stockHistory.length > 0
+          ? stockHistory[stockHistory.length - 1]!.updated_stock
+          : 0;
 
       const totalOutOfStock = stockHistory.filter(
         (s) => s.updated_stock <= s.min_stock
@@ -226,7 +237,6 @@ class StockController {
         totalOutOfStock,
       };
 
-      console.log(stockHistory);
       ApiResponse.success(
         res,
         { stockHistory, summary },
@@ -243,10 +253,25 @@ class StockController {
     res: Response
   ) => {
     try {
-      const { storeId } = req.query;
-      console.log(storeId);
+      const { storeId, month, year } = req.query;
+      // Ambil month dan year nya
+      const startDate = new Date(Number(year), Number(month) - 1, 1);
+      const endDate = new Date(Number(year), Number(month), 0, 23, 59, 59, 999);
+      //
+      const whereClause: any = {
+        created_at: {
+          gte: startDate,
+          lte: endDate,
+        },
+      };
+
+      if (storeId && storeId !== "all") {
+        whereClause.productStock = { store_id: Number(storeId) };
+      }
+
+      //
       const stockHistory = await prisma.stockHistory.findMany({
-        where: { productStock: { store_id: Number(storeId) } },
+        where: whereClause,
         select: {
           type: true,
           quantity: true,
