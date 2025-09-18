@@ -28,6 +28,12 @@ enum OrderStatus {
   CANCELLED
   REFUNDED
 }
+enum StockChangeType {
+  IN 
+  OUT
+  ADJUSTMENT
+  REMOVED
+}
 
 model User {
   id               String @id @default(uuid())
@@ -51,6 +57,8 @@ model User {
   cart                Cart?
   orders              Order[]
   store Store? @relation(fields: [store_id], references: [id],onDelete: SetNull)
+  history StockHistory[]
+  archived_stock_history ArchivedStockHistory[]
 }
 
 model SocialLogin {
@@ -141,16 +149,44 @@ model ProductStocks {
   store_id       Int
   product_id     Int
   stock_quantity Int @default(0)
+  min_stock Int @default(0)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt()
 
   store   Store   @relation(fields: [store_id], references: [id],onDelete: Cascade)
   product Product @relation(fields: [product_id], references: [id],onDelete: Cascade)
-
+  history StockHistory[]
   @@unique([store_id, product_id])
+}
+model StockHistory {
+  id Int @id @default(autoincrement())
+  type StockChangeType
+  quantity Int
+  prev_stock Int @default(0)
+  updated_stock Int
+  min_stock Int @default(0)
+  reason String
+  order_id Int?
+  created_at DateTime @default(now())
+  productStockId Int 
+  user_id String?
+  created_by User? @relation(fields: [user_id],references: [id],onDelete: Cascade)
+  productStock ProductStocks @relation(fields: [productStockId],references: [id],onDelete: Cascade) 
+}
+model ArchivedStockHistory {
+  id Int @id @default(autoincrement())
+  product_id Int
+  product_name String
+  stock_quantity Int
+  reason String
+  archived_at DateTime @default(now())
+  user_id String
+  created_by User @relation(fields: [user_id],references: [id],onDelete: Cascade)
 }
 
 model ProductCategory {
   id Int @id @default(autoincrement())
-  category String
+  category String @unique
   products Product[]
 }
 

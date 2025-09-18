@@ -10,6 +10,7 @@ import { ApiResponse } from "./utils/ApiResponse";
 import CartRoutes from "./routes/CartRoutes";
 import StoreRoutes from "./routes/StoreRoutes";
 import ProductRoutes from "./routes/ProductRoutes";
+import StockRoutes from "./routes/StockRoutes";
 
 dotenv.config();
 
