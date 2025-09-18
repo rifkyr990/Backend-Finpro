@@ -1,8 +1,6 @@
 import { Request, Response } from "express";
-import { ApiResponse } from "../utils/ApiResponse";
 import prisma from "../config/prisma";
-import { connect } from "http2";
-import { create } from "domain";
+import { ApiResponse } from "../utils/ApiResponse";
 
 class StockController {
   public static getProductStocks = async (req: Request, res: Response) => {

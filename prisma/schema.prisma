@@ -34,7 +34,6 @@ enum StockChangeType {
   ADJUSTMENT
   REMOVED
 }
-<<<<<<< HEAD
 enum DiscountType {
   MANUAL
   MIN_PURCHASE
@@ -56,8 +55,6 @@ enum ValueType {
   NOMINAL
   PERCENTAGE
 }
-=======
->>>>>>> 1631025a79f86e1801e69c0af7548550843ca348
 
 model User {
   id               String @id @default(uuid())
@@ -83,14 +80,11 @@ model User {
   store Store? @relation(fields: [store_id], references: [id],onDelete: SetNull)
   history StockHistory[]
   archived_stock_history ArchivedStockHistory[]
-<<<<<<< HEAD
    discountUsage            DiscountUsage[]
    referrals                Referral[]
   referralUsagesAsReferrer ReferralUsage[]      @relation("Referrer")
   referralUsagesAsReferee  ReferralUsage[]      @relation("Referee")
 
-=======
->>>>>>> 1631025a79f86e1801e69c0af7548550843ca348
 }
 
 model SocialLogin {
@@ -217,13 +211,8 @@ model ArchivedStockHistory {
   stock_quantity Int
   reason String
   archived_at DateTime @default(now())
-<<<<<<< HEAD
   user_id String?
   created_by User? @relation(fields: [user_id],references: [id],onDelete: Cascade)
-=======
-  user_id String
-  created_by User @relation(fields: [user_id],references: [id],onDelete: Cascade)
->>>>>>> 1631025a79f86e1801e69c0af7548550843ca348
 }
 
 model ProductCategory {
