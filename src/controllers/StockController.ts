@@ -90,11 +90,7 @@ class StockController {
             reason,
             order_id: 123456,
             productStockId: updateStock.id,
-<<<<<<< HEAD
             // user_id: "01c9874c-8985-40f1-8bde-b0d93aae9c1e", //dummy user sementara
-=======
-            user_id: "01c9874c-8985-40f1-8bde-b0d93aae9c1e", //dummy user sementara
->>>>>>> 1631025a79f86e1801e69c0af7548550843ca348
           },
         });
         return { updateStock, createStockHistory };
@@ -110,9 +106,6 @@ class StockController {
       console.log(error);
     }
   };
-<<<<<<< HEAD
-
-=======
   public static deleteProductStockbyId = async (
     req: Request,
     res: Response
@@ -122,7 +115,6 @@ class StockController {
       ApiResponse.error(res, "Delete Stock Product");
     }
   };
->>>>>>> 1631025a79f86e1801e69c0af7548550843ca348
   public static getProductStockHistory = async (
     req: Request,
     res: Response
@@ -168,7 +160,6 @@ class StockController {
       ApiResponse.error(res, "Get Product Stock History Error", 400);
     }
   };
-<<<<<<< HEAD
 
   public static getProductStockHistorySummary = async (
     req: Request,
@@ -238,8 +229,6 @@ class StockController {
       console.log(error);
     }
   };
-=======
->>>>>>> 1631025a79f86e1801e69c0af7548550843ca348
 }
 
 export default StockController;
