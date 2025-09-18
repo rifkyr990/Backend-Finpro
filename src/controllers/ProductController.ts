@@ -357,7 +357,6 @@ class ProductController {
   public static deleteCategory = async (req: Request, res: Response) => {
     try {
       const categoryName = req.body.cleanData;
-<<<<<<< HEAD
       console.log(categoryName);
       if (!categoryName)
         return ApiResponse.error(res, "Category Name is required", 400);
@@ -370,13 +369,6 @@ class ProductController {
       const existingCategory = categories.find(
         (cat) => cat.category.trim().toLowerCase() === categoryName
       );
-=======
-      if (!categoryName)
-        return ApiResponse.error(res, "Category Name is required", 400);
-      const existingCategory = await prisma.productCategory.findFirst({
-        where: { category: categoryName },
-      });
->>>>>>> 1631025a79f86e1801e69c0af7548550843ca348
       if (!existingCategory)
         return ApiResponse.error(res, "Category not found", 404);
 
@@ -390,7 +382,6 @@ class ProductController {
         });
       }
 
-<<<<<<< HEAD
       // transaction alurnya : soft delete categorynya, lalu oper kategori produknya ke "others" category
       const result = await prisma.$transaction([
         // soft delete dulu
@@ -427,25 +418,6 @@ class ProductController {
         "Kategori berhasil soft-delete",
         200
       );
-=======
-      await prisma.$transaction([
-        prisma.product.updateMany({
-          where: {
-            category_id: existingCategory.id,
-          },
-          data: {
-            category_id: fallbackCategory.id,
-          },
-        }),
-        prisma.productCategory.delete({
-          where: {
-            id: existingCategory.id,
-          },
-        }),
-      ]);
-
-      return ApiResponse.success(res, null, "Kategori berhasil dihapus", 200);
->>>>>>> 1631025a79f86e1801e69c0af7548550843ca348
     } catch (error) {
       ApiResponse.error(res, "Delete category error", 400);
     }
@@ -453,10 +425,6 @@ class ProductController {
   public static editCategory = async (req: Request, res: Response) => {
     try {
       const { newCat, oldCat } = req.body.data;
-<<<<<<< HEAD
-      console.log(newCat, oldCat);
-=======
->>>>>>> 1631025a79f86e1801e69c0af7548550843ca348
       // console.log(newCat, oldCat);
       if (newCat === oldCat)
         return ApiResponse.error(res, "There is an existing data", 400);
@@ -467,10 +435,7 @@ class ProductController {
       ApiResponse.success(res, updateCategory, "Update Category Success", 200);
     } catch (error) {
       ApiResponse.error(res, "Edit Category Error", 400);
-<<<<<<< HEAD
       console.log(error);
-=======
->>>>>>> 1631025a79f86e1801e69c0af7548550843ca348
     }
   };
   public static deleteProduct = async (req: Request, res: Response) => {
@@ -660,7 +625,6 @@ class ProductController {
       ApiResponse.error(res, "Create new product error", 400);
     }
   };
-<<<<<<< HEAD
 
   public static softDeleteProduct = async (req: Request, res: Response) => {
     try {
@@ -675,8 +639,6 @@ class ProductController {
       ApiResponse.error(res, "Soft Delete Error", 400);
     }
   };
-=======
->>>>>>> 1631025a79f86e1801e69c0af7548550843ca348
 }
 
 export default ProductController;
