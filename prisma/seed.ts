@@ -27,13 +27,10 @@ async function main() {
   await prisma.user.deleteMany();
   await prisma.store.deleteMany();
   await prisma.archivedStockHistory.deleteMany();
-<<<<<<< HEAD
   await prisma.discountUsage.deleteMany();
   await prisma.discount.deleteMany();
   await prisma.orderItem.deleteMany();
   await prisma.order.deleteMany();
-=======
->>>>>>> 1631025a79f86e1801e69c0af7548550843ca348
   console.log("Seeding database...");
   // --- User Seeding ---
   // const customer = await prisma.user.upsert({

@@ -81,7 +81,7 @@ class StockController {
         const createStockHistory = await tx.stockHistory.create({
           data: {
             type,
-            quantity: diff,
+            quantity: Math.abs(diff),
             prev_stock: prev_qty,
             updated_stock: updated_stock,
             min_stock,
@@ -147,10 +147,89 @@ class StockController {
           },
         },
       });
-      // console.log(getStockHistory);
+      console.log(getStockHistory);
       ApiResponse.success(
         res,
         getStockHistory,
+        "Get Product Stock History Success",
+        200
+      );
+    } catch (error) {
+      ApiResponse.error(res, "Get Product Stock History Error", 400);
+    }
+  };
+
+  //  getProductStockHistory (untuk summary)
+  public static getProductStockHistoryAllStoreSummary = async (
+    req: Request,
+    res: Response
+  ) => {
+    try {
+      const { storeId } = req.query;
+      const whereClause =
+        storeId && storeId !== "all"
+          ? { productStock: { store_id: Number(storeId) } }
+          : {};
+      const stockHistory = await prisma.stockHistory.findMany({
+        where: whereClause,
+        select: {
+          type: true,
+          quantity: true,
+          prev_stock: true,
+          updated_stock: true,
+          min_stock: true,
+          reason: true,
+          created_at: true,
+          created_by: {
+            select: {
+              first_name: true,
+              last_name: true,
+            },
+          },
+          productStock: {
+            select: {
+              store: {
+                select: {
+                  name: true,
+                },
+              },
+              product: {
+                select: { name: true },
+              },
+            },
+          },
+        },
+      });
+
+      // summary dihitung tergantung ada/tidak storeId
+      const totalAddition = stockHistory
+        .filter((s) => s.type === "IN")
+        .reduce((acc, s) => acc + s.quantity, 0);
+
+      const totalReduction = stockHistory
+        .filter((s) => s.type === "OUT")
+        .reduce((acc, s) => acc + s.quantity, 0);
+
+      const totalLatestStock = stockHistory.reduce(
+        (acc, s) => acc + s.updated_stock,
+        0
+      );
+
+      const totalOutOfStock = stockHistory.filter(
+        (s) => s.updated_stock <= s.min_stock
+      ).length;
+
+      const summary = {
+        totalAddition,
+        totalReduction,
+        totalLatestStock,
+        totalOutOfStock,
+      };
+
+      console.log(stockHistory);
+      ApiResponse.success(
+        res,
+        { stockHistory, summary },
         "Get Product Stock History Success",
         200
       );
@@ -167,10 +246,7 @@ class StockController {
       const { storeId } = req.query;
       console.log(storeId);
       const stockHistory = await prisma.stockHistory.findMany({
-        where:
-          storeId && storeId !== "all"
-            ? { productStock: { store_id: Number(storeId) } }
-            : {},
+        where: { productStock: { store_id: Number(storeId) } },
         select: {
           type: true,
           quantity: true,

@@ -14,7 +14,10 @@ class ProductRoutes {
       StockController.postChangeProductStock
     );
     this.router.get("/stock-history", StockController.getProductStockHistory);
-
+    this.router.get(
+      "/stock-history/summary-all-store",
+      StockController.getProductStockHistoryAllStoreSummary
+    );
     this.router.get(
       "/stock-history/summary",
       StockController.getProductStockHistorySummary
