@@ -16,6 +16,10 @@ class PaymentRoutes {
       authMiddleware(),
       PaymentController.createTransaction
     );
+    this.router.post(
+      "/midtrans-notification",
+      PaymentController.handleMidtransNotification
+    );
   }
 }
 

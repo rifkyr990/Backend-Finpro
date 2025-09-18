@@ -177,6 +177,17 @@ async function main() {
     create: { id: 2, name: "Payment Gateway", type: "GATEWAY" },
   });
 
+  console.log("Seeding Discounts...");
+  await prisma.discount.create({
+    data: {
+      code: "HEMAT10",
+      description: "Discount 10,000 for any purchase",
+      type: "MANUAL",
+      discAmount: 10000,
+      isFreeShipping: false,
+    },
+  });
+
   console.log("Seeding completed!");
 }
 
