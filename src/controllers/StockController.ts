@@ -106,15 +106,7 @@ class StockController {
       console.log(error);
     }
   };
-  public static deleteProductStockbyId = async (
-    req: Request,
-    res: Response
-  ) => {
-    try {
-    } catch (error) {
-      ApiResponse.error(res, "Delete Stock Product");
-    }
-  };
+
   public static getProductStockHistory = async (
     req: Request,
     res: Response
@@ -158,6 +150,75 @@ class StockController {
       );
     } catch (error) {
       ApiResponse.error(res, "Get Product Stock History Error", 400);
+    }
+  };
+
+  public static getProductStockHistorySummary = async (
+    req: Request,
+    res: Response
+  ) => {
+    try {
+      const { storeId } = req.query;
+      console.log(storeId);
+      const stockHistory = await prisma.stockHistory.findMany({
+        where:
+          storeId && storeId !== "all"
+            ? { productStock: { store_id: Number(storeId) } }
+            : {},
+        select: {
+          type: true,
+          quantity: true,
+          prev_stock: true,
+          updated_stock: true,
+          min_stock: true,
+          reason: true,
+          created_at: true,
+          created_by: {
+            select: { first_name: true, last_name: true },
+          },
+          productStock: {
+            select: {
+              store: { select: { name: true } },
+              product: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: { created_at: "desc" },
+      });
+      // penghitungan rekapitulasi untuk summary card
+      let totalAddition = 0;
+      let totalReduction = 0;
+      let totalLatestStock = 0;
+      let totalOutofStock = 0;
+
+      stockHistory.forEach((stock) => {
+        if (stock.type === "IN") totalAddition += stock.quantity;
+        if (stock.type === "OUT") totalReduction += stock.quantity;
+        totalLatestStock = stock.updated_stock;
+        if (stock.updated_stock <= 0) totalOutofStock++;
+      });
+
+      ApiResponse.success(
+        res,
+        {
+          stockHistory,
+          summary: {
+            totalAddition,
+            totalReduction,
+            totalLatestStock,
+            totalOutofStock,
+          },
+        },
+        "Get Product Stock History Success",
+        200
+      );
+    } catch (error) {
+      ApiResponse.error(res, "Get Product Stock History Error", 400);
+      console.log(error);
     }
   };
 }
