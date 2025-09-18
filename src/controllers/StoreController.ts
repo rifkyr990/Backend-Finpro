@@ -41,6 +41,7 @@ class StoreController {
     }
   }; // arco
 
+<<<<<<< HEAD
   public static postNewAdmin = async (req: Request, res: Response) => {
     try {
       const { first_name, last_name, email, password, store_id, phone } =
@@ -66,6 +67,8 @@ class StoreController {
     }
   }; //arco
 
+=======
+>>>>>>> 1631025a79f86e1801e69c0af7548550843ca348
   public static deleteStoreById = async (req: Request, res: Response) => {
     try {
       const storeId = Number(req.params.id);
@@ -90,6 +93,74 @@ class StoreController {
       ApiResponse.error(res, "Error delete store data by id", 400);
     }
   }; // arco
+
+  // di dalam StoreController
+public static createStore = async (req: Request, res: Response) => {
+  try {
+    const {
+      name,
+      address,
+      city,
+      province,
+      latitude,
+      longitude,
+      is_active,
+      adminIds,
+    } = req.body.payload;
+
+    // 1. Buat store baru
+    const newStore = await prisma.store.create({
+      data: {
+        name,
+        address,
+        city,
+        province,
+        latitude,
+        longitude,
+        is_active,
+      },
+    });
+
+    // 2. Update admin agar terhubung ke store & ubah role ke STORE_ADMIN
+    if (adminIds && adminIds.length > 0) {
+      await prisma.user.updateMany({
+        where: {
+          id: { in: adminIds },
+        },
+        data: {
+          role: "STORE_ADMIN",
+          store_id: newStore.id,
+        },
+      });
+    }
+
+    // 3. Ambil data lengkap store + admins
+    const storeWithAdmins = await prisma.store.findUnique({
+      where: { id: newStore.id },
+      include: {
+        admins: {
+          select: {
+            id: true,
+            first_name: true,
+            last_name: true,
+            role: true,
+          },
+        },
+      },
+    });
+
+    return ApiResponse.success(
+      res,
+      storeWithAdmins,
+      "Create Store Success!",
+      201
+    );
+  } catch (error) {
+    console.error(error);
+    return ApiResponse.error(res, "Create Store Error", 400);
+  }
+};
+
   public static patchStoreById = async (req: Request, res: Response) => {
     try {
       const storeId = Number(req.params.id);

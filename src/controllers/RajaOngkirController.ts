@@ -5,7 +5,6 @@ export class RajaOngkirController {
     private BASE_URL = "https://rajaongkir.komerce.id/api/v1/destination";
     private API_KEY = process.env.RAJAONGKIR_API_KEY_COST!;
 
-  // ✅ GET Provinces
     public getProvinces = async (req: Request, res: Response) => {
         try {
             const response = await axios.get(`${this.BASE_URL}/province`, {
@@ -23,7 +22,6 @@ export class RajaOngkirController {
         }
     };
 
-  // ✅ GET Cities by provinceId
     public getCities = async (req: Request, res: Response) => {
         try {
             const { provinceId } = req.params;
@@ -35,8 +33,8 @@ export class RajaOngkirController {
             const results = response.data.data.map((item: any) => ({
                 city_id: String(item.id),
                 city_name: item.name,
-                type: item.type, // kalau ada
-                postal_code: item.postal_code, // kalau ada
+                type: item.type,
+                postal_code: item.postal_code, 
             }));
 
             res.json(results);
@@ -45,7 +43,6 @@ export class RajaOngkirController {
         }
     };
 
-  // ✅ GET Subdistricts by cityId
     public getDistricts = async (req: Request, res: Response) => {
         try {
             const { cityId } = req.params;

@@ -11,6 +11,7 @@ class ProductRoutes {
   private initializeRoutes() {
     this.router.get("/landing/all", ProductController.getLandingProduct); // arco
     this.router.get("/all", ProductController.getAllProduct); //arco
+
     this.router.get("/detail/:id", ProductController.getProductById); // arco
     this.router.patch(
       "/update-product/:id",
@@ -21,6 +22,10 @@ class ProductRoutes {
     this.router.get("/by-categories", ProductController.getProductbyCategories); //arco
     this.router.patch("/category", ProductController.deleteCategory); //arco
     this.router.patch("/update-category", ProductController.editCategory); //arco
+    this.router.get("/by-categories", ProductController.getProductbyCategories); //arco
+    this.router.delete("/category", ProductController.deleteCategory); //arco
+    this.router.patch("/category", ProductController.editCategory); //arco
+
     this.router.patch(
       "/change-status/:id",
       ProductController.changeProductStatus
