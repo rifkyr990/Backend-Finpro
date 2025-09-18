@@ -11,9 +11,6 @@ CREATE TYPE "public"."OrderStatus" AS ENUM ('PENDING_PAYMENT', 'PAID', 'PROCESSI
 CREATE TYPE "public"."DiscountType" AS ENUM ('MANUAL', 'MIN_PURCHASE', 'B1G1', 'FREE_ONGKIR');
 
 -- CreateEnum
-CREATE TYPE "public"."DiscountUsageStatus" AS ENUM ('APPLIED', 'CANCELLED');
-
--- CreateEnum
 CREATE TYPE "public"."ReferralUsageStatus" AS ENUM ('PENDING', 'APPLIED', 'EXPIRED');
 
 -- CreateEnum
@@ -21,6 +18,15 @@ CREATE TYPE "public"."StockHistoryType" AS ENUM ('IN', 'OUT');
 
 -- CreateEnum
 CREATE TYPE "public"."PaymentStatus" AS ENUM ('PENDING', 'SUCCESS', 'FAILED', 'REFUNDED');
+
+-- CreateEnum
+CREATE TYPE "public"."StockChangeType" AS ENUM ('IN', 'OUT', 'ADJUSTMENT', 'REMOVED');
+
+-- CreateEnum
+CREATE TYPE "public"."DiscountUsageStatus" AS ENUM ('APPLIED', 'CANCELLED');
+
+-- CreateEnum
+CREATE TYPE "public"."ValueType" AS ENUM ('NOMINAL', 'PERCENTAGE');
 
 -- CreateTable
 CREATE TABLE "public"."User" (
@@ -127,9 +133,10 @@ CREATE TABLE "public"."Product" (
     "category_id" INTEGER NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT,
-    "price" DECIMAL(65,30) NOT NULL,
+    "price" TEXT NOT NULL,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "is_deleted" BOOLEAN NOT NULL DEFAULT false,
 
     CONSTRAINT "Product_pkey" PRIMARY KEY ("id")
 );
@@ -150,30 +157,50 @@ CREATE TABLE "public"."ProductStocks" (
     "store_id" INTEGER NOT NULL,
     "product_id" INTEGER NOT NULL,
     "stock_quantity" INTEGER NOT NULL DEFAULT 0,
+    "min_stock" INTEGER NOT NULL DEFAULT 0,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "ProductStocks_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."StockHistory" (
+    "id" SERIAL NOT NULL,
+    "type" "public"."StockChangeType" NOT NULL,
+    "quantity" INTEGER NOT NULL,
+    "prev_stock" INTEGER NOT NULL DEFAULT 0,
+    "updated_stock" INTEGER NOT NULL,
+    "min_stock" INTEGER NOT NULL DEFAULT 0,
+    "reason" TEXT NOT NULL,
+    "order_id" INTEGER,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "productStockId" INTEGER NOT NULL,
+    "user_id" TEXT,
+
+    CONSTRAINT "StockHistory_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."ArchivedStockHistory" (
+    "id" SERIAL NOT NULL,
+    "product_id" INTEGER NOT NULL,
+    "product_name" TEXT NOT NULL,
+    "stock_quantity" INTEGER NOT NULL,
+    "reason" TEXT NOT NULL,
+    "archived_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "user_id" TEXT,
+
+    CONSTRAINT "ArchivedStockHistory_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "public"."ProductCategory" (
     "id" SERIAL NOT NULL,
     "category" TEXT NOT NULL,
+    "is_deleted" BOOLEAN NOT NULL DEFAULT false,
 
     CONSTRAINT "ProductCategory_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "public"."StockHistory" (
-    "id" SERIAL NOT NULL,
-    "product_stock_id" INTEGER NOT NULL,
-    "type" "public"."StockHistoryType" NOT NULL,
-    "quantity" INTEGER NOT NULL,
-    "prevStock" INTEGER NOT NULL,
-    "newestStock" INTEGER NOT NULL,
-    "created_by" TEXT NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "StockHistory_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -270,19 +297,20 @@ CREATE TABLE "public"."PaymentProof" (
 -- CreateTable
 CREATE TABLE "public"."Discount" (
     "id" SERIAL NOT NULL,
+    "name" TEXT NOT NULL,
     "product_id" INTEGER,
     "store_id" INTEGER,
     "code" TEXT NOT NULL,
     "description" TEXT,
     "type" "public"."DiscountType" NOT NULL,
-    "isFreeShipping" BOOLEAN NOT NULL DEFAULT false,
-    "minValue" DECIMAL(65,30),
+    "minPurch" DECIMAL(65,30),
     "minQty" INTEGER,
-    "buyQty" INTEGER,
     "freeQty" INTEGER,
     "discAmount" DECIMAL(65,30),
-    "maxUsage_perUser" INTEGER,
-    "expiredAt" TIMESTAMP(3),
+    "valueType" "public"."ValueType",
+    "start_date" TIMESTAMP(3) NOT NULL,
+    "end_date" TIMESTAMP(3) NOT NULL,
+    "is_deleted" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Discount_pkey" PRIMARY KEY ("id")
@@ -292,8 +320,8 @@ CREATE TABLE "public"."Discount" (
 CREATE TABLE "public"."DiscountUsage" (
     "id" SERIAL NOT NULL,
     "discount_id" INTEGER NOT NULL,
-    "user_id" TEXT NOT NULL,
-    "order_id" INTEGER NOT NULL,
+    "user_id" TEXT,
+    "order_id" INTEGER,
     "status" "public"."DiscountUsageStatus" NOT NULL,
     "useAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -334,7 +362,13 @@ CREATE UNIQUE INDEX "PasswordResetToken_token_key" ON "public"."PasswordResetTok
 CREATE UNIQUE INDEX "UserProfile_user_id_key" ON "public"."UserProfile"("user_id");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Product_name_key" ON "public"."Product"("name");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "ProductStocks_store_id_product_id_key" ON "public"."ProductStocks"("store_id", "product_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ProductCategory_category_key" ON "public"."ProductCategory"("category");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Cart_user_id_key" ON "public"."Cart"("user_id");
@@ -382,7 +416,13 @@ ALTER TABLE "public"."ProductStocks" ADD CONSTRAINT "ProductStocks_store_id_fkey
 ALTER TABLE "public"."ProductStocks" ADD CONSTRAINT "ProductStocks_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "public"."Product"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."StockHistory" ADD CONSTRAINT "StockHistory_product_stock_id_fkey" FOREIGN KEY ("product_stock_id") REFERENCES "public"."ProductStocks"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."StockHistory" ADD CONSTRAINT "StockHistory_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."StockHistory" ADD CONSTRAINT "StockHistory_productStockId_fkey" FOREIGN KEY ("productStockId") REFERENCES "public"."ProductStocks"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."ArchivedStockHistory" ADD CONSTRAINT "ArchivedStockHistory_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."Cart" ADD CONSTRAINT "Cart_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -427,13 +467,13 @@ ALTER TABLE "public"."Discount" ADD CONSTRAINT "Discount_product_id_fkey" FOREIG
 ALTER TABLE "public"."Discount" ADD CONSTRAINT "Discount_store_id_fkey" FOREIGN KEY ("store_id") REFERENCES "public"."Store"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."DiscountUsage" ADD CONSTRAINT "DiscountUsage_discount_id_fkey" FOREIGN KEY ("discount_id") REFERENCES "public"."Discount"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."DiscountUsage" ADD CONSTRAINT "DiscountUsage_discount_id_fkey" FOREIGN KEY ("discount_id") REFERENCES "public"."Discount"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."DiscountUsage" ADD CONSTRAINT "DiscountUsage_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."DiscountUsage" ADD CONSTRAINT "DiscountUsage_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."DiscountUsage" ADD CONSTRAINT "DiscountUsage_order_id_fkey" FOREIGN KEY ("order_id") REFERENCES "public"."Order"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."DiscountUsage" ADD CONSTRAINT "DiscountUsage_order_id_fkey" FOREIGN KEY ("order_id") REFERENCES "public"."Order"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."Referral" ADD CONSTRAINT "Referral_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

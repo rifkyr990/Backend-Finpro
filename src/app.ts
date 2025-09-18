@@ -11,12 +11,9 @@ import OrderRoutes from "./routes/OrderRoutes";
 import ShippingRoutes from "./routes/ShippingRoutes";
 import StoreRoutes from "./routes/StoreRoutes";
 import ProductRoutes from "./routes/ProductRoutes";
-<<<<<<< HEAD
 import StockRoutes from "./routes/StockRoutes";
 import DiscountRoutes from "./routes/DiscountRoutes";
-=======
 import PaymentRoutes from "./routes/PaymentRoutes";
->>>>>>> 1dd34d1c7f4ec253880fd4581df9bfb17ad9c9c9
 
 dotenv.config();
 
@@ -41,26 +38,12 @@ class App {
 
   private initializeRoutes() {
     this.app.use("/api/auth", AuthRoutes);
-<<<<<<< HEAD
-    this.app.use("/api/cart", CartRoutes);
     this.app.use("/api/user", UserRoutes);
-
+    this.app.use("/api/cart", CartRoutes);
     this.app.use("/api/store", StoreRoutes);
-    this.app.use("/api/product", ProductRoutes);
     this.app.use("/api/stock", StockRoutes);
-    this.app.use("/api/discount", DiscountRoutes);
-    this.app.use("/api/address", UserAddressRoutes);
-    this.app.use("/api/rajaongkir", RajaOngkirRoutes);
-    this.app.get("/", (req, res) => {
-      return ApiResponse.success(res, null, "API is running 🚀");
-    });
-  }
-
-=======
-    this.app.use("/api/user", UserRoutes);
-    this.app.use("/api/cart", CartRoutes);
-    this.app.use("/api/store", StoreRoutes);
     this.app.use("/api/product", ProductRoutes);
+    this.app.use("/api/discount", DiscountRoutes);
     this.app.use("/api/address", UserAddressRoutes);
     this.app.use("/api/rajaongkir", RajaOngkirRoutes);
     this.app.use("/api/orders", OrderRoutes);
@@ -71,7 +54,6 @@ class App {
     });
   }
 
->>>>>>> 1dd34d1c7f4ec253880fd4581df9bfb17ad9c9c9
   private initializeErrorHandler() {
     this.app.use(
       (

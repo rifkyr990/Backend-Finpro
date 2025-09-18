@@ -358,6 +358,13 @@ class ProductController {
     try {
       const categoryName = req.body.cleanData;
       console.log(categoryName);
+      if (categoryName === "others") {
+        return ApiResponse.error(
+          res,
+          "Kategori Others tidak dapat dihapus",
+          400
+        );
+      }
       if (!categoryName)
         return ApiResponse.error(res, "Category Name is required", 400);
       // Ambil semua kategori yang belum dihapus
@@ -424,15 +431,58 @@ class ProductController {
   };
   public static editCategory = async (req: Request, res: Response) => {
     try {
-      const { newCat, oldCat } = req.body.data;
-      // console.log(newCat, oldCat);
-      if (newCat === oldCat)
+      let { newCat, oldCat } = req.body.data;
+
+      // Sanitize
+      newCat = newCat?.trim();
+      oldCat = oldCat?.trim();
+
+      if (!newCat || !oldCat) {
+        return ApiResponse.error(
+          res,
+          "Both old and new category names are required",
+          400
+        );
+      }
+
+      if (newCat.toLowerCase() === oldCat.toLowerCase()) {
         return ApiResponse.error(res, "There is an existing data", 400);
-      const updateCategory = await prisma.productCategory.update({
-        where: { category: oldCat },
+      }
+
+      // Cari data berdasarkan oldCat
+      const existingCategory = await prisma.productCategory.findFirst({
+        where: {
+          category: {
+            equals: oldCat,
+            mode: "insensitive",
+          },
+          is_deleted: false,
+        },
+      });
+
+      if (!existingCategory || existingCategory.is_deleted) {
+        return ApiResponse.error(
+          res,
+          "Category not found or already deleted",
+          404
+        );
+      }
+
+      // Optional: cek kalau newCat sudah ada → duplikat
+      const newCatExists = await prisma.productCategory.findUnique({
+        where: { category: newCat },
+      });
+
+      if (newCatExists) {
+        return ApiResponse.error(res, "New category already exists", 400);
+      }
+
+      // Update by ID, bukan by category
+      const updatedCategory = await prisma.productCategory.update({
+        where: { id: existingCategory.id },
         data: { category: newCat },
       });
-      ApiResponse.success(res, updateCategory, "Update Category Success", 200);
+      ApiResponse.success(res, updatedCategory, "Update Category Success", 200);
     } catch (error) {
       ApiResponse.error(res, "Edit Category Error", 400);
       console.log(error);

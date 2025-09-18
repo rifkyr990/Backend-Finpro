@@ -14,11 +14,7 @@
   "description": "",
   "dependencies": {
     "@prisma/client": "^6.15.0",
-<<<<<<< HEAD
     "axios": "^1.12.2",
-=======
-    "axios": "^1.12.1",
->>>>>>> 1dd34d1c7f4ec253880fd4581df9bfb17ad9c9c9
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.7.0",
     "cors": "^2.8.5",

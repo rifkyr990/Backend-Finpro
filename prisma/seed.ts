@@ -122,7 +122,9 @@ async function main() {
   }
 
   console.log("Seeding Products and Stocks...");
-  for (let i = 0; i < 50; i++) {
+  const createdProducts: Product[] = [];
+
+  for (let i = 0; i < 7; i++) {
     const randomCategory = faker.helpers.arrayElement(createdCategories);
     const name = faker.commerce.productName() + " - " + i;
     const product = await prisma.product.create({
@@ -138,13 +140,16 @@ async function main() {
         category_id: randomCategory.id,
       },
     });
-
-    await prisma.productImage.create({
-      data: {
-        product_id: product.id,
-        image_url: faker.image.urlLoremFlickr({ category: "food" }),
-      },
-    });
+    createdProducts.push(product);
+    const imageCount = faker.number.int({ min: 2, max: 4 });
+    for (let i = 0; i < imageCount; i++) {
+      await prisma.productImage.create({
+        data: {
+          product_id: product.id,
+          image_url: faker.image.urlPicsumPhotos({ width: 800, height: 400 }),
+        },
+      });
+    }
 
     for (const store of stores) {
       await prisma.productStocks.create({
