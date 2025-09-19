@@ -120,6 +120,41 @@ class AuthService {
         return { message: "Email verifikasi berhasil dikirim ulang" };
     }
 
+    // Resend verifikasi email
+    public async resendRegistVerification(email: string) {
+        const user = await prisma.user.findUnique({ where: { email }});
+        if(!user) throw new Error("User tidak ditemukan");
+        if (user.is_verified) throw new Error("Akun sudah terverifikasi");
+
+        await prisma.verificationToken.deleteMany({
+            where: {
+                user_id: user.id,
+                used: false,
+                expires_at: { gt: new Date() },
+            }
+        });
+
+        const token = crypto.randomBytes(32).toString("hex");
+        await prisma.verificationToken.create({
+            data: {
+                user_id: user.id,
+                token,
+                expires_at: new Date(Date.now() + 60 * 60 * 1000),
+                used: false,
+            }
+        });
+
+        const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+        await sendEmail({
+            to: user.email,
+            subject: "Verifikasi Email Anda - FreshCart",
+            text: `Klik tautan berikut untuk memverifikasi email Anda: ${verificationUrl}`,
+            html: verificationEmailTemplate(verificationUrl),
+        });
+
+        return { message: "Email verifikasi berhasil dikirim ulang" };
+    }
+
     // LOGIN (dengan cek is_verified)
     public async login(email: string, password: string) {
         const user = await prisma.user.findUnique({ where: { email } });

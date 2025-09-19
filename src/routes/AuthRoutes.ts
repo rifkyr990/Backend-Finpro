@@ -18,6 +18,7 @@ class AuthRoutes {
         this.router.post("/verify-email", AuthController.verifyEmail);
         this.router.post("/request-reset", AuthController.requestResetPassword);
         this.router.post("/resend-verification", AuthController.resendVerification);
+        this.router.post("/resent-regist" ,AuthController.resendRegistVerification);
         this.router.post("/reset-password", AuthController.resetPassword);
         this.router.post("/google-login", AuthController.loginWithGoogle);
         this.router.post("/upload-profie", upload.single("profile_picture"), AuthController.resendVerification);

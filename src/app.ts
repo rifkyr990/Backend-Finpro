@@ -1,4 +1,3 @@
-// src/app.ts
 import express, { Application } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -8,9 +7,12 @@ import UserAddressRoutes from "./routes/UserAddressRoutes";
 import RajaOngkirRoutes from "./routes/RajaOngkirRoutes";
 import { ApiResponse } from "./utils/ApiResponse";
 import CartRoutes from "./routes/CartRoutes";
+import OrderRoutes from "./routes/OrderRoutes";
+import ShippingRoutes from "./routes/ShippingRoutes";
 import StoreRoutes from "./routes/StoreRoutes";
 import ProductRoutes from "./routes/ProductRoutes";
 import StockRoutes from "./routes/StockRoutes";
+import PaymentRoutes from "./routes/PaymentRoutes";
 
 dotenv.config();
 
@@ -33,34 +35,45 @@ class App {
         this.app.use(express.urlencoded({ extended: true }));
     }
 
-    private initializeRoutes() {
-        this.app.use("/api/auth", AuthRoutes);
-        this.app.use("/api/user", UserRoutes);
-        this.app.use("/api/cart", CartRoutes);
-        this.app.use("/api/user", UserRoutes);
-        this.app.use("/api/store", StoreRoutes);
-        this.app.use("/api/product", ProductRoutes);
-        this.app.use("/api/address", UserAddressRoutes);
-        this.app.use("/api/rajaongkir", RajaOngkirRoutes)
-        this.app.get("/", (req, res) => {
-            return ApiResponse.success(res, null, "API is running 🚀");
-        });
-    }
+  private initializeRoutes() {
+    this.app.use("/api/auth", AuthRoutes);
+    this.app.use("/api/user", UserRoutes);
+    this.app.use("/api/cart", CartRoutes);
+    this.app.use("/api/store", StoreRoutes);
+    this.app.use("/api/product", ProductRoutes);
+    this.app.use("/api/address", UserAddressRoutes);
+    this.app.use("/api/rajaongkir", RajaOngkirRoutes);
+    this.app.use("/api/orders", OrderRoutes);
+    this.app.use("/api/shipping", ShippingRoutes);
+    this.app.use("/api/payment", PaymentRoutes);
+    this.app.get("/", (req, res) => {
+      return ApiResponse.success(res, null, "API is running 🚀");
+    });
+  }
 
-    private initializeErrorHandler() {
-        this.app.use(
-            (err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-                console.error("Error Middleware:", err);
-                return ApiResponse.error(res, err.message || "Internal Server Error", 500);
-            }
+  private initializeErrorHandler() {
+    this.app.use(
+      (
+        err: Error,
+        req: express.Request,
+        res: express.Response,
+        next: express.NextFunction
+      ) => {
+        console.error("Error Middleware:", err);
+        return ApiResponse.error(
+          res,
+          err.message || "Internal Server Error",
+          500
         );
-    }
+      }
+    );
+  }
 
-    public listen() {
-        this.app.listen(this.port, () => {
-        console.log(`🚀 Server running on http://localhost:${this.port}`);
-        });
-    }
+  public listen() {
+    this.app.listen(this.port, () => {
+      console.log(`🚀 Server running on http://localhost:${this.port}`);
+    });
+  }
 }
 
 export default App;

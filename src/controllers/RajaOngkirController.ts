@@ -84,6 +84,40 @@ export class RajaOngkirController {
             res.status(500).json({ message: err.message });
         }
     };
+
+    public getShippingCost = async (req: Request, res: Response) => {
+        try {
+            const origin = process.env.ORIGIN_SUBDISTRICT_ID;
+            const { destination, weight, courier } = req.body;
+
+            if (!destination || !weight || !courier) {
+                return res.status(400).json({
+                    message: "destination, weight, and courier are required",
+                });
+            }
+
+            const response = await axios.post(
+                "https://rajaongkir.komerce.id/api/v1/cost",
+                {
+                    origin,
+                    destination,
+                    weight,
+                    courier,
+                },
+                {
+                    headers: {
+                        key: this.API_KEY,
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+
+            const results = response.data.data;
+            res.json(results);
+        } catch (error: any) {
+            res.status(500).json({ message: error.message });
+        }
+    }
 }
 
 export default new RajaOngkirController();

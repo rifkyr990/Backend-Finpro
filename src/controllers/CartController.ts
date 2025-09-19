@@ -1,117 +1,148 @@
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+import { Response } from "express";
+import { AuthRequest } from "../middlewares/AuthMiddleware";
+import { ApiResponse } from "../utils/ApiResponse";
+import { asyncHandler } from "../utils/AsyncHandler";
+import prisma from "../config/prisma";
 
 class CartController {
-  public static async getCart(req: any, res: any) {
-    try {
-      const userId = req.user?.id ?? 1; // TODO: replace with auth userId
+  public static getCart = asyncHandler(
+    async (req: AuthRequest, res: Response) => {
+      const userId = req.user?.id;
+      if (!userId) {
+        return ApiResponse.error(res, "Unauthorized", 401);
+      }
 
       const cart = await prisma.cart.findUnique({
         where: { user_id: userId },
         include: {
           cartItems: {
-            include: { product: { include: { images: { take: 1 } } } },
+            include: {
+              product: {
+                include: { images: { take: 1 } },
+              },
+            },
+            orderBy: { id: "asc" },
           },
           store: true,
         },
       });
 
       if (!cart) {
-        return res.status(404).json({ message: "Cart not found" });
+        return ApiResponse.success(
+          res,
+          {
+            store: null,
+            cartItems: [],
+          },
+          "Cart is empty"
+        );
       }
 
       const formattedCart = {
-        ...cart,
+        store: cart.store,
         cartItems: cart.cartItems.map((item) => ({
-          ...item,
+          id: item.id,
+          quantity: item.quantity,
           product: {
-            ...item.product,
+            id: item.product.id,
+            name: item.product.name,
             description: item.product.description || "",
+            price: item.product.price,
             imageUrl:
               item.product.images[0]?.image_url ||
-              "https://images.unsplash.com/photo-1567306226416-28f0efdc88ce?w=500&q=80",
+              "https://placehold.co/400x400/png",
           },
         })),
       };
 
-      console.log(formattedCart);
-
-      res.json(formattedCart);
-    } catch (error) {
-      console.error("Error fetching cart:", error);
-      res.status(500).json({ error: "Failed to fetch cart" });
+      return ApiResponse.success(
+        res,
+        formattedCart,
+        "Cart fetched successfully"
+      );
     }
-  }
+  );
 
-  static async updateCart(req: any, res: any) {
-    try {
-      const userId = req.user?.id ?? 1;
-      const { storeId, items } = req.body as {
-        storeId: number;
-        items: { productId: number; quantity: number }[];
-      };
+  static updateCart = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const userId = req.user?.id;
+    if (!userId) {
+      return ApiResponse.error(res, "Unauthorized", 401);
+    }
 
-      const updatedCart = await prisma.$transaction(async (tx) => {
-        let cart = await tx.cart.findUnique({ where: { user_id: userId } });
-        if (!cart) {
-          cart = await tx.cart.create({
-            data: { user_id: userId, store_id: storeId },
-          });
-        }
+    const { storeId, items } = req.body as {
+      storeId: number;
+      items: { productId: number; quantity: number }[];
+    };
 
-        if (cart.store_id !== storeId) {
-          cart = await tx.cart.update({
-            where: { id: cart.id },
-            data: { store_id: storeId, total_quantity: 0, total_price: 0 },
-          });
-        }
+    if (typeof storeId !== "number" || !Array.isArray(items)) {
+      return ApiResponse.error(res, "Invalid payload format", 400);
+    }
 
+    const updatedCart = await prisma.$transaction(async (tx) => {
+      let cart = await tx.cart.findUnique({ where: { user_id: userId } });
+
+      if (!cart) {
+        cart = await tx.cart.create({
+          data: { user_id: userId, store_id: storeId },
+        });
+      }
+
+      if (cart.store_id !== storeId) {
         await tx.cartItem.deleteMany({ where: { cart_id: cart.id } });
+        cart = await tx.cart.update({
+          where: { id: cart.id },
+          data: { store_id: storeId, total_quantity: 0, total_price: 0 },
+        });
+      }
 
-        if (items.length === 0) {
-          return tx.cart.update({
-            where: { id: cart.id },
-            data: { total_quantity: 0, total_price: 0 },
-            include: { cartItems: true },
-          });
-        }
+      await tx.cartItem.deleteMany({ where: { cart_id: cart.id } });
 
+      if (items.length === 0) {
+        return tx.cart.update({
+          where: { id: cart.id },
+          data: { total_quantity: 0, total_price: 0 },
+          include: { cartItems: true },
+        });
+      }
+
+      const productIds = items.map((i) => i.productId);
+      const products = await tx.product.findMany({
+        where: { id: { in: productIds } },
+        select: { id: true, price: true },
+      });
+
+      const productMap = new Map(products.map((p) => [p.id, p]));
+
+      const validItems = items.filter((item) => productMap.has(item.productId));
+
+      if (validItems.length > 0) {
         await tx.cartItem.createMany({
-          data: items.map((i) => ({
+          data: validItems.map((i) => ({
             cart_id: cart!.id,
             product_id: i.productId,
             quantity: i.quantity,
           })),
         });
+      }
 
-        const productIds = items.map((i) => i.productId);
-        const products = await tx.product.findMany({
-          where: { id: { in: productIds } },
-          select: { id: true, price: true },
-        });
+      let totalQuantity = 0;
+      let totalPrice = 0;
+      for (const item of validItems) {
+        const product = products.find((p) => p.id === item.productId);
+        if (!product) continue;
+        totalQuantity += item.quantity;
+        totalPrice += Number(product.price) * item.quantity;
+      }
 
-        let totalQuantity = 0;
-        let totalPrice = 0;
-        for (const item of items) {
-          const product = products.find((p) => p.id === item.productId);
-          if (!product) continue;
-          totalQuantity += item.quantity;
-          totalPrice += Number(product.price) * item.quantity;
-        }
-
-        return tx.cart.update({
-          where: { id: cart.id },
-          data: { total_quantity: totalQuantity, total_price: totalPrice },
-          include: { cartItems: { include: { product: true } } },
-        });
+      return tx.cart.update({
+        where: { id: cart.id },
+        data: { total_quantity: totalQuantity, total_price: totalPrice },
+        include: { cartItems: { include: { product: true } } },
       });
+    });
 
-      res.json(updatedCart);
-    } catch (error) {
-      console.error("Error updating cart:", error);
-      res.status(500).json({ error: "Failed to update cart" });
-    }
-  }
+    return ApiResponse.success(res, updatedCart, "Cart updated successfully");
+  });
 }
 
 export default CartController;
