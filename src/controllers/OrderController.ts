@@ -15,9 +15,10 @@ class OrderController {
 
       const { addressId, shippingCost, paymentMethodId, promoCode } = req.body;
 
+      // shippingCost is now expected as a string
       if (
         typeof addressId !== "number" ||
-        typeof shippingCost !== "number" ||
+        typeof shippingCost !== "string" ||
         typeof paymentMethodId !== "number"
       ) {
         return ApiResponse.error(
@@ -43,6 +44,11 @@ class OrderController {
 
         if (!userAddress) {
           throw new Error("Address not found or does not belong to user");
+        }
+
+        const shippingCostNum = parseFloat(shippingCost);
+        if (isNaN(shippingCostNum)) {
+          throw new Error("Invalid shipping cost format");
         }
 
         const subtotal = userCart.cartItems.reduce(
@@ -75,7 +81,7 @@ class OrderController {
           }
         }
 
-        const totalPrice = subtotal - discountAmount + shippingCost;
+        const totalPrice = subtotal - discountAmount + shippingCostNum;
 
         const {
           name,
@@ -227,10 +233,10 @@ class OrderController {
       const formattedOrder = {
         id: order.id,
         createdAt: order.created_at,
-        totalPrice: order.total_price,
-        subtotal: subtotal,
-        shippingCost: shippingCost > 0 ? shippingCost : 0,
-        discountAmount: discountAmount,
+        totalPrice: order.total_price.toString(),
+        subtotal: subtotal.toString(),
+        shippingCost: (shippingCost > 0 ? shippingCost : 0).toString(),
+        discountAmount: discountAmount.toString(),
         destinationAddress: order.destination_address,
         store: {
           id: order.store.id,
@@ -246,7 +252,7 @@ class OrderController {
         items: order.orderItems.map((item) => ({
           id: item.id,
           quantity: item.quantity,
-          priceAtPurchase: item.price_at_purchase,
+          priceAtPurchase: item.price_at_purchase.toString(),
           product: {
             id: item.product.id,
             name: item.product.name,

@@ -20,7 +20,16 @@ class ProductController {
       });
       console.log(productData);
       // ApiResponse.success(res,res)
-      ApiResponse.success(res, productData, "Get All Product Success", 200);
+      const formattedProducts = productData.map((p) => ({
+        ...p,
+        price: p.price.toString(),
+      }));
+      ApiResponse.success(
+        res,
+        formattedProducts,
+        "Get All Product Success",
+        200
+      );
     } catch (error) {
       ApiResponse.error(res, "Get All Product Error", 400);
     }
@@ -111,8 +120,18 @@ class ProductController {
         });
       }
 
+      const formattedResult = result.map((p) => ({
+        ...p,
+        price: p.price.toString(),
+      }));
+
       console.log(result);
-      ApiResponse.success(res, result, "Get Product by Province Success", 200);
+      ApiResponse.success(
+        res,
+        formattedResult,
+        "Get Product by Province Success",
+        200
+      );
     } catch (error) {
       ApiResponse.error(res, "Get Product by Province Error", 400);
     }

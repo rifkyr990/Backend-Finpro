@@ -47,7 +47,7 @@ class CartController {
             id: item.product.id,
             name: item.product.name,
             description: item.product.description || "",
-            price: item.product.price,
+            price: item.product.price.toString(),
             imageUrl:
               item.product.images[0]?.image_url ||
               "https://placehold.co/400x400/png",

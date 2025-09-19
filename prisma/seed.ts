@@ -183,7 +183,7 @@ async function main() {
       code: "HEMAT10",
       description: "Discount 10,000 for any purchase",
       type: "MANUAL",
-      discAmount: 10000,
+      discAmount: "10000",
       isFreeShipping: false,
     },
   });
