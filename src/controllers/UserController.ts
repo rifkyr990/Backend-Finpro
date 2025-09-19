@@ -19,6 +19,25 @@ class UserController {
       ApiResponse.error(res, "Error Get All Users Data", 400);
     }
   }; // arco
+  public static getUserById = async (req: Request, res: Response) => {
+    try {
+      const user_id = req.params.id?.toString();
+      if (!user_id) return ApiResponse.error(res, "Error", 400);
+      const result = await prisma.user.findMany({
+        where: { id: user_id },
+        omit: {
+          created_at: true,
+          password: true,
+          updated_at: true,
+        },
+      });
+      console.log(result);
+      ApiResponse.success(res, result, "Get User By Id", 200);
+    } catch (error) {
+      ApiResponse.error(res, "Get User By ID Error", 400);
+    }
+  };
+
   public static getAllCustomers = async (req: Request, res: Response) => {
     try {
       const customersData = await prisma.user.findMany({
@@ -35,8 +54,59 @@ class UserController {
     } catch (error) {
       ApiResponse.error(res, "Error get customers data", 400);
     }
-  }; //arco
+  };
 
+  public static getAllStoreAdmin = async (req: Request, res: Response) => {
+    try {
+      const customersData = await prisma.user.findMany({
+        where: { role: "STORE_ADMIN", store_id: null },
+        include: {
+          addresses: true,
+        },
+      });
+      return ApiResponse.success(
+        res,
+        customersData,
+        "Get All Store Admin Data Success"
+      );
+    } catch (error) {
+      ApiResponse.error(res, "Error get customers data", 400);
+    }
+  };
+
+  // public static assignMultipleAdmins = asyncHandler(
+  //   async (req: Request, res: Response) => {
+  //     const { store_id, adminIds } = req.body;
+
+  //     if (!store_id || !Array.isArray(adminIds) || adminIds.length === 0) {
+  //       return ApiResponse.error(res, "store_id dan adminIds wajib diisi", 400);
+  //     }
+
+  //     // pastikan store ada
+  //     const store = await prisma.store.findUnique({
+  //       where: { id: store_id },
+  //     });
+  //     if (!store) {
+  //       return ApiResponse.error(res, "Store tidak ditemukan", 404);
+  //     }
+
+  //     // update semua user sesuai adminIds
+  //     const updatedAdmins = await prisma.user.updateMany({
+  //       where: { id: { in: adminIds } },
+  //       data: {
+  //         store_id: store_id,
+  //         role: "STORE_ADMIN",
+  //       },
+  //     });
+
+  //     return ApiResponse.success(
+  //       res,
+  //       updatedAdmins,
+  //       `Berhasil assign ${updatedAdmins.count} admin ke store`
+  //     );
+  //   }
+  // );
+  
   public static deleteUserById = async (req: Request, res: Response) => {
     try {
       const userId = req.params.id;
@@ -45,7 +115,9 @@ class UserController {
     } catch (error) {
       ApiResponse.error(res, "Error delete data", 400);
     }
-  }; //arco
+  };
+
+  //arco
   public static assignAdminbyId = async (req: Request, res: Response) => {
     try {
       const userId = req.params.id;
@@ -123,6 +195,30 @@ class UserController {
       return ApiResponse.success(res, updated, "Profile Berhasil diperbaharui");
     }
   );
+  public static updateUser = async (req: Request, res: Response) => {
+    try {
+      const user_id = req.params.id?.toString();
+      if (!user_id) return ApiResponse.error(res, "Eror", 400);
+      const { first_name, last_name, email, password, phone, store_id } =
+        req.body;
+
+      const updateUser = await prisma.user.update({
+        where: { id: user_id },
+        data: {
+          first_name,
+          last_name,
+          email,
+          password,
+          phone,
+          store_id,
+        },
+      });
+      ApiResponse.success(res, updateUser, "Update User Success!", 200);
+    } catch (error) {
+      ApiResponse.error(res, "Update User Error", 400);
+      console.log(error);
+    }
+  };
 
   public static changePassword = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user.id;

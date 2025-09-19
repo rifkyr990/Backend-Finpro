@@ -9,7 +9,6 @@ export const authorizeRoles = (...allowedRoles: string[]) => {
                 message: "Unauthorized: User not found in request",
             });
         }
-
         const userRole = req.user.role;
 
         if (!allowedRoles.includes(userRole)) {
@@ -18,7 +17,6 @@ export const authorizeRoles = (...allowedRoles: string[]) => {
                 message: "Forbidden: Access denied",
             });
         }
-
         next();
     };
 };

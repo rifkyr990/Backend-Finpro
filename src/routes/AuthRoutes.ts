@@ -20,7 +20,6 @@ class AuthRoutes {
         this.router.post("/resend-verification", AuthController.resendVerification);
         this.router.post("/reset-password", AuthController.resetPassword);
         this.router.post("/google-login", AuthController.loginWithGoogle);
-        // this.router.post("/facebook-login", AuthController.loginWithFacebook);
         this.router.post("/upload-profie", upload.single("profile_picture"), AuthController.resendVerification);
 
 

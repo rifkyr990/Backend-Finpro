@@ -11,7 +11,6 @@ import { requestResetPasswordEmail } from '../templates/ResetPassword';
 import { validatePassword } from "../utils/validatePassword";
 
 class AuthService {
-    // REGISTRASI TANPA PASSWORD + TOKEN VERIFIKASI
     public async register(first_name: string, last_name: string, email: string) {
         const existingUser = await prisma.user.findUnique({ where: { email } });
         if (existingUser) throw new Error("Email sudah digunakan");
@@ -25,7 +24,6 @@ class AuthService {
                 is_verified: false,
             },
         });
-
         const token = crypto.randomBytes(32).toString("hex");
 
         await prisma.verificationToken.create({
