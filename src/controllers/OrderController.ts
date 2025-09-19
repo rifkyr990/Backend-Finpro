@@ -4,6 +4,7 @@ import { AuthRequest } from "../middlewares/AuthMiddleware";
 import cloudinary from "../config/cloudinary";
 import { ApiResponse } from "../utils/ApiResponse";
 import { asyncHandler } from "../utils/AsyncHandler";
+import { Discount, Prisma } from "@prisma/client";
 
 class OrderController {
   public static createOrder = asyncHandler(
@@ -56,32 +57,90 @@ class OrderController {
           0
         );
 
-        let discountAmount = 0;
-        let appliedDiscount = null;
+        let productDiscount = 0;
+        let shippingDiscount = 0;
+        let finalAppliedDiscount: Discount | null = null;
 
         if (promoCode) {
-          appliedDiscount = await tx.discount.findFirst({
+          const foundDiscount = await tx.discount.findFirst({
             where: {
               code: promoCode,
-              // expiredAt: { gte: new Date() } // Future validation
+              is_deleted: false,
+              start_date: { lte: new Date() },
+              end_date: { gte: new Date() },
             },
           });
 
-          if (appliedDiscount) {
-            // NOTE: This is a simplified logic for a fixed amount discount.
-            if (appliedDiscount.discAmount) {
-              // Ensure discount is not greater than subtotal
-              discountAmount = Math.min(
-                subtotal,
-                Number(appliedDiscount.discAmount)
+          if (foundDiscount) {
+            const meetsMinPurchase =
+              !foundDiscount.minPurch ||
+              new Prisma.Decimal(subtotal).gte(foundDiscount.minPurch);
+
+            if (meetsMinPurchase) {
+              finalAppliedDiscount = foundDiscount; // Assign here only if valid
+
+              switch (finalAppliedDiscount.type) {
+                case "MANUAL":
+                case "MIN_PURCHASE":
+                  if (finalAppliedDiscount.discAmount) {
+                    if (finalAppliedDiscount.valueType === "PERCENTAGE") {
+                      productDiscount =
+                        (subtotal * Number(finalAppliedDiscount.discAmount)) /
+                        100;
+                    } else {
+                      // Assumes NOMINAL
+                      productDiscount = Number(finalAppliedDiscount.discAmount);
+                    }
+                  }
+                  break;
+
+                case "B1G1":
+                  if (
+                    finalAppliedDiscount.product_id &&
+                    finalAppliedDiscount.minQty &&
+                    finalAppliedDiscount.freeQty
+                  ) {
+                    const targetItem = userCart.cartItems.find(
+                      (item) =>
+                        item.product_id === finalAppliedDiscount!.product_id
+                    );
+                    if (
+                      targetItem &&
+                      targetItem.quantity >= finalAppliedDiscount.minQty
+                    ) {
+                      const timesToApply = Math.floor(
+                        targetItem.quantity / finalAppliedDiscount.minQty
+                      );
+                      const freeItemsCount =
+                        timesToApply * finalAppliedDiscount.freeQty;
+                      productDiscount =
+                        Number(targetItem.product.price) * freeItemsCount;
+                    }
+                  }
+                  break;
+
+                case "FREE_ONGKIR":
+                  shippingDiscount = shippingCostNum;
+                  break;
+              }
+            } else {
+              console.warn(
+                `Promo code ${promoCode} did not meet minimum purchase requirement.`
               );
             }
           } else {
-            console.warn(`Invalid promo code applied: ${promoCode}`);
+            console.warn(`Invalid or expired promo code applied: ${promoCode}`);
           }
         }
 
-        const totalPrice = subtotal - discountAmount + shippingCostNum;
+        // Final safeguards for calculated discounts
+        productDiscount = Math.min(subtotal, productDiscount);
+        shippingDiscount = Math.min(shippingCostNum, shippingDiscount);
+
+        const totalPrice = Math.max(
+          0,
+          subtotal - productDiscount + (shippingCostNum - shippingDiscount)
+        );
 
         const {
           name,
@@ -136,10 +195,10 @@ class OrderController {
           },
         });
 
-        if (appliedDiscount) {
+        if (finalAppliedDiscount) {
           await tx.discountUsage.create({
             data: {
-              discount_id: appliedDiscount.id,
+              discount_id: finalAppliedDiscount.id,
               user_id: userId,
               order_id: order.id,
               status: "APPLIED",
@@ -223,12 +282,38 @@ class OrderController {
         include: { discount: true },
       });
 
-      const discountAmount = discountUsage?.discount.discAmount
-        ? Number(discountUsage.discount.discAmount)
-        : 0;
+      let discountAmount = 0;
+      if (discountUsage?.discount) {
+        const discount = discountUsage.discount;
+        if (discount.valueType === "PERCENTAGE" && discount.discAmount) {
+          discountAmount = (subtotal * Number(discount.discAmount)) / 100;
+        } else if (discount.type === "B1G1") {
+          // Recalculate B1G1 discount for display
+          const targetItem = order.orderItems.find(
+            (item) => item.product_id === discount.product_id
+          );
+          if (
+            targetItem &&
+            discount.minQty &&
+            discount.freeQty &&
+            targetItem.quantity >= discount.minQty
+          ) {
+            const timesToApply = Math.floor(
+              targetItem.quantity / discount.minQty
+            );
+            const freeItemsCount = timesToApply * discount.freeQty;
+            discountAmount = Number(targetItem.price_at_purchase) * freeItemsCount;
+          }
+        } else {
+          discountAmount = Number(discount.discAmount) || 0;
+        }
+      }
+      
+      // Ensure discount isn't larger than subtotal
+      discountAmount = Math.min(subtotal, discountAmount);
 
       const shippingCost =
-        Number(order.total_price) - subtotal + discountAmount;
+        Number(order.total_price) - (subtotal - discountAmount);
 
       const formattedOrder = {
         id: order.id,
