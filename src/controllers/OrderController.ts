@@ -39,6 +39,26 @@ class OrderController {
           throw new Error("Cart is empty");
         }
 
+        // Backend stock validation
+        for (const item of userCart.cartItems) {
+          const productStock = await tx.productStocks.findUnique({
+            where: {
+              store_id_product_id: {
+                store_id: userCart.store_id,
+                product_id: item.product_id,
+              },
+            },
+          });
+
+          if (!productStock || productStock.stock_quantity < item.quantity) {
+            throw new Error(
+              `Insufficient stock for ${item.product.name}. Only ${
+                productStock?.stock_quantity || 0
+              } left.`
+            );
+          }
+        }
+
         const userAddress = await tx.userAddress.findFirst({
           where: { id: addressId, user_id: userId },
         });
@@ -206,6 +226,39 @@ class OrderController {
           });
         }
 
+        // Deduct stock and create stock history
+        for (const item of userCart.cartItems) {
+          const productStock = await tx.productStocks.findUniqueOrThrow({
+            where: {
+              store_id_product_id: {
+                store_id: userCart.store_id,
+                product_id: item.product_id,
+              },
+            },
+          });
+
+          const newStockQuantity = productStock.stock_quantity - item.quantity;
+
+          await tx.productStocks.update({
+            where: { id: productStock.id },
+            data: { stock_quantity: newStockQuantity },
+          });
+
+          await tx.stockHistory.create({
+            data: {
+              type: "OUT",
+              quantity: item.quantity,
+              prev_stock: productStock.stock_quantity,
+              updated_stock: newStockQuantity,
+              min_stock: productStock.min_stock,
+              reason: `Customer Order #${order.id}`,
+              order_id: order.id,
+              productStockId: productStock.id,
+              user_id: userId,
+            },
+          });
+        }
+
         await tx.cartItem.deleteMany({ where: { cart_id: userCart.id } });
         await tx.cart.update({
           where: { id: userCart.id },
@@ -302,13 +355,14 @@ class OrderController {
               targetItem.quantity / discount.minQty
             );
             const freeItemsCount = timesToApply * discount.freeQty;
-            discountAmount = Number(targetItem.price_at_purchase) * freeItemsCount;
+            discountAmount =
+              Number(targetItem.price_at_purchase) * freeItemsCount;
           }
         } else {
           discountAmount = Number(discount.discAmount) || 0;
         }
       }
-      
+
       // Ensure discount isn't larger than subtotal
       discountAmount = Math.min(subtotal, discountAmount);
 
