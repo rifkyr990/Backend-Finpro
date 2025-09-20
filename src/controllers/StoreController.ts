@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { ApiResponse } from "../utils/ApiResponse";
 import prisma from "../config/prisma";
+import { request } from "http";
 
 class StoreController {
   // get all stores data - arco start
@@ -15,8 +16,7 @@ class StoreController {
     } catch (error) {
       ApiResponse.error(res, "Error get all stores data", 400);
     }
-  };
-  // arco -end
+  }; //arco
 
   public static getAllStoreAdmin = async (req: Request, res: Response) => {
     try {
@@ -30,6 +30,7 @@ class StoreController {
               first_name: true,
               last_name: true,
               role: true,
+              phone: true,
             },
           },
         },
@@ -39,6 +40,31 @@ class StoreController {
       ApiResponse.error(res, "Get All Store Admin Failed", 400);
     }
   }; // arco
+
+  public static postNewAdmin = async (req: Request, res: Response) => {
+    try {
+      const { first_name, last_name, email, password, store_id, phone } =
+        req.body;
+      console.log(req.body);
+      const data = await prisma.user.create({
+        data: {
+          first_name,
+          last_name,
+          password,
+          email,
+          store_id: store_id,
+          phone,
+          is_verified: false,
+          role: "STORE_ADMIN",
+          image_url: "https://iili.io/KRwBd91.png",
+        },
+      });
+      ApiResponse.success(res, data, "Create New Store Admin Success", 200);
+    } catch (error) {
+      ApiResponse.error(res, "Create new store admin error");
+      console.log(error);
+    }
+  }; //arco
 
   public static deleteStoreById = async (req: Request, res: Response) => {
     try {
@@ -66,22 +92,9 @@ class StoreController {
   }; // arco
 
   // di dalam StoreController
-public static createStore = async (req: Request, res: Response) => {
-  try {
-    const {
-      name,
-      address,
-      city,
-      province,
-      latitude,
-      longitude,
-      is_active,
-      adminIds,
-    } = req.body.payload;
-
-    // 1. Buat store baru
-    const newStore = await prisma.store.create({
-      data: {
+  public static createStore = async (req: Request, res: Response) => {
+    try {
+      const {
         name,
         address,
         city,
@@ -89,48 +102,61 @@ public static createStore = async (req: Request, res: Response) => {
         latitude,
         longitude,
         is_active,
-      },
-    });
+        adminIds,
+      } = req.body.payload;
 
-    // 2. Update admin agar terhubung ke store & ubah role ke STORE_ADMIN
-    if (adminIds && adminIds.length > 0) {
-      await prisma.user.updateMany({
-        where: {
-          id: { in: adminIds },
-        },
+      // 1. Buat store baru
+      const newStore = await prisma.store.create({
         data: {
-          role: "STORE_ADMIN",
-          store_id: newStore.id,
+          name,
+          address,
+          city,
+          province,
+          latitude,
+          longitude,
+          is_active,
         },
       });
-    }
 
-    // 3. Ambil data lengkap store + admins
-    const storeWithAdmins = await prisma.store.findUnique({
-      where: { id: newStore.id },
-      include: {
-        admins: {
-          select: {
-            id: true,
-            first_name: true,
-            last_name: true,
-            role: true,
+      // 2. Update admin agar terhubung ke store & ubah role ke STORE_ADMIN
+      if (adminIds && adminIds.length > 0) {
+        await prisma.user.updateMany({
+          where: {
+            id: { in: adminIds },
+          },
+          data: {
+            role: "STORE_ADMIN",
+            store_id: newStore.id,
+          },
+        });
+      }
+
+      // 3. Ambil data lengkap store + admins
+      const storeWithAdmins = await prisma.store.findUnique({
+        where: { id: newStore.id },
+        include: {
+          admins: {
+            select: {
+              id: true,
+              first_name: true,
+              last_name: true,
+              role: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    return ApiResponse.success(
-      res,
-      storeWithAdmins,
-      "Create Store Success!",
-      201
-    );
-  } catch (error) {
-    console.error(error);
-    return ApiResponse.error(res, "Create Store Error", 400);
-  }
-};
+      return ApiResponse.success(
+        res,
+        storeWithAdmins,
+        "Create Store Success!",
+        201
+      );
+    } catch (error) {
+      console.error(error);
+      return ApiResponse.error(res, "Create Store Error", 400);
+    }
+  };
 
   public static patchStoreById = async (req: Request, res: Response) => {
     try {

@@ -9,10 +9,23 @@ class ProductRoutes {
     this.initializeRoutes();
   }
   private initializeRoutes() {
+    this.router.get("/landing/all", ProductController.getLandingProduct); // arco
     this.router.get("/all", ProductController.getAllProduct); //arco
+
+    this.router.get("/detail/:id", ProductController.getProductById); // arco
+    this.router.patch(
+      "/update-product/:id",
+      upload.array("images", 4),
+      ProductController.updateProductById
+    ); //arco
+    this.router.get("/store/:id", ProductController.getAllProductByStoreId); // arco
+    this.router.get("/by-categories", ProductController.getProductbyCategories); //arco
+    this.router.patch("/category", ProductController.deleteCategory); //arco
+    this.router.patch("/update-category", ProductController.editCategory); //arco
     this.router.get("/by-categories", ProductController.getProductbyCategories); //arco
     this.router.delete("/category", ProductController.deleteCategory); //arco
     this.router.patch("/category", ProductController.editCategory); //arco
+
     this.router.patch(
       "/change-status/:id",
       ProductController.changeProductStatus
@@ -20,6 +33,7 @@ class ProductRoutes {
     this.router.post("/new-category", ProductController.createProductCategory); // arco
     this.router.get("/", ProductController.getAllProductByLocation); // arco
     this.router.delete("/", ProductController.deleteProduct); // arco
+    this.router.patch("/soft-delete", ProductController.softDeleteProduct); // arco
     this.router.post(
       "/new-product",
       upload.array("images", 4),

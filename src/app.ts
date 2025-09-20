@@ -12,35 +12,38 @@ import ShippingRoutes from "./routes/ShippingRoutes";
 import StoreRoutes from "./routes/StoreRoutes";
 import ProductRoutes from "./routes/ProductRoutes";
 import StockRoutes from "./routes/StockRoutes";
+import DiscountRoutes from "./routes/DiscountRoutes";
 import PaymentRoutes from "./routes/PaymentRoutes";
 
 dotenv.config();
 
 class App {
-    private app: Application;
-    private port: number;
+  private app: Application;
+  private port: number;
 
-    constructor(port: number) {
-        this.app = express();
-        this.port = port;
+  constructor(port: number) {
+    this.app = express();
+    this.port = port;
 
-        this.initializeMiddlewares();
-        this.initializeRoutes();
-        this.initializeErrorHandler();
-    }
+    this.initializeMiddlewares();
+    this.initializeRoutes();
+    this.initializeErrorHandler();
+  }
 
-    private initializeMiddlewares() {
-        this.app.use(cors());
-        this.app.use(express.json());
-        this.app.use(express.urlencoded({ extended: true }));
-    }
+  private initializeMiddlewares() {
+    this.app.use(cors());
+    this.app.use(express.json());
+    this.app.use(express.urlencoded({ extended: true }));
+  }
 
   private initializeRoutes() {
     this.app.use("/api/auth", AuthRoutes);
     this.app.use("/api/user", UserRoutes);
     this.app.use("/api/cart", CartRoutes);
     this.app.use("/api/store", StoreRoutes);
+    this.app.use("/api/stock", StockRoutes);
     this.app.use("/api/product", ProductRoutes);
+    this.app.use("/api/discount", DiscountRoutes);
     this.app.use("/api/address", UserAddressRoutes);
     this.app.use("/api/rajaongkir", RajaOngkirRoutes);
     this.app.use("/api/orders", OrderRoutes);

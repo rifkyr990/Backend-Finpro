@@ -22,7 +22,7 @@ class UserRoutes {
     // this.router.post("/assign-admins",UserController.assignMultipleAdmins);
     this.router.get("/profile", authMiddleware(), UserController.getProfile);
     this.router.put("/profile", authMiddleware(), UserController.updateProfile);
-    this.router.post("/verify-new-email",authMiddleware(),UserController.verifyNewEmail);
+    this.router.post("/verify-new-email",UserController.verifyNewEmail);
     this.router.put("/change-password",authMiddleware(),authorizeRoles("CUSTOMER"),UserController.changePassword);
     this.router.put("/profile-picture",authMiddleware(),upload.single("image"),UserController.updateProfilePicture);
   }
