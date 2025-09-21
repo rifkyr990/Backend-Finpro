@@ -1,5 +1,3 @@
-// Main File: OrderController.ts
-// Path: src/controllers/OrderController.ts
 import { Response } from "express";
 import prisma from "../config/prisma";
 import { AuthRequest } from "../middlewares/AuthMiddleware";

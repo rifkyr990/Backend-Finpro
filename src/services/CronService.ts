@@ -4,14 +4,12 @@ import { OrderStatus } from "@prisma/client";
 
 class CronService {
   public static startOrderCancellationJob() {
-
     cron.schedule("* * * * *", async () => {
       console.log("CRON: Checking for expired unpaid orders...");
 
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
 
       try {
-
         const expiredOrders = await prisma.order.findMany({
           where: {
             created_at: {
@@ -22,7 +20,7 @@ class CronService {
             },
             payments: {
               some: {
-                payment_method_id: 1, // Manual Bank Transfer
+                payment_method_id: 1,
               },
             },
           },
@@ -36,8 +34,9 @@ class CronService {
           return;
         }
 
-        console.log(`CRON: Found ${expiredOrders.length} expired orders. Processing...`);
-
+        console.log(
+          `CRON: Found ${expiredOrders.length} expired orders. Processing...`
+        );
 
         const cancelledStatus = await prisma.orderStatuses.findUniqueOrThrow({
           where: { status: OrderStatus.CANCELLED },
@@ -45,7 +44,6 @@ class CronService {
 
         for (const order of expiredOrders) {
           await prisma.$transaction(async (tx) => {
-
             await tx.order.update({
               where: { id: order.id },
               data: { order_status_id: cancelledStatus.id },
@@ -61,7 +59,8 @@ class CronService {
                 },
               });
 
-              const newStockQuantity = productStock.stock_quantity + item.quantity;
+              const newStockQuantity =
+                productStock.stock_quantity + item.quantity;
 
               await tx.productStocks.update({
                 where: { id: productStock.id },
@@ -83,7 +82,9 @@ class CronService {
               });
             }
 
-            console.log(`CRON: Successfully cancelled Order #${order.id} and restored stock.`);
+            console.log(
+              `CRON: Successfully cancelled Order #${order.id} and restored stock.`
+            );
           });
         }
       } catch (error) {
