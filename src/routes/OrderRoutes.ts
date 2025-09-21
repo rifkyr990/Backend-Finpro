@@ -13,6 +13,11 @@ class OrderRoutes {
 
   private initializeRoutes() {
     this.router.get("/all", OrderController.getAllOrderData);
+    this.router.get(
+      "/my-orders",
+      authMiddleware(),
+      OrderController.getMyOrders
+    );
     this.router.post("/", authMiddleware(), OrderController.createOrder);
     this.router.get(
       "/:orderId",

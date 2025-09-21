@@ -1,10 +1,12 @@
+// Main File: OrderController.ts
+// Path: src/controllers/OrderController.ts
 import { Response } from "express";
 import prisma from "../config/prisma";
 import { AuthRequest } from "../middlewares/AuthMiddleware";
 import cloudinary from "../config/cloudinary";
 import { ApiResponse } from "../utils/ApiResponse";
 import { asyncHandler } from "../utils/AsyncHandler";
-import { Discount, Prisma } from "@prisma/client";
+import { Discount, OrderStatus, Prisma } from "@prisma/client";
 
 class OrderController {
   public static createOrder = asyncHandler(
@@ -510,25 +512,117 @@ class OrderController {
     }
   );
 
-  public static getAllOrderData = async (req: Request, res: Response) => {
-    try {
-      const result = await prisma.order.findMany();
-      ApiResponse.success(res, result, "Get all order success", 200);
-    } catch (error) {
-      ApiResponse.error(res, "Error get all order", 400);
+  public static getAllOrderData = asyncHandler(
+    async (req: AuthRequest, res: Response) => {
+      try {
+        const result = await prisma.order.findMany();
+        ApiResponse.success(res, result, "Get all order success", 200);
+      } catch (error) {
+        ApiResponse.error(res, "Error get all order", 400);
+      }
     }
-  };
+  );
 
-  // public static getAllOrderData = asyncHandler(
-  //   async (req: AuthRequest, res: Response) => {
-  //     try {
-  //       const result = await prisma.order.findMany();
-  //       ApiResponse.success(res, result, "Get all order success", 200);
-  //     } catch (error) {
-  //       ApiResponse.error(res, "Error get all order", 400);
-  //     }
-  //   }
-  // );
+  public static getMyOrders = asyncHandler(
+    async (req: AuthRequest, res: Response) => {
+      const userId = req.user?.id;
+      if (!userId) {
+        return ApiResponse.error(res, "Unauthorized", 401);
+      }
+
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const skip = (page - 1) * limit;
+      const search = req.query.search as string;
+      const status = req.query.status as string;
+      const startDate = req.query.startDate as string;
+      const endDate = req.query.endDate as string;
+
+      const whereClause: Prisma.OrderWhereInput = {
+        user_id: userId,
+      };
+
+      if (search && !isNaN(parseInt(search))) {
+        whereClause.id = parseInt(search);
+      }
+
+      if (status && status !== "ALL") {
+        whereClause.orderStatus = {
+          status: status as OrderStatus,
+        };
+      }
+
+      if (startDate && endDate) {
+        whereClause.created_at = {
+          gte: new Date(startDate),
+          lte: new Date(new Date(endDate).setHours(23, 59, 59, 999)),
+        };
+      }
+
+      const [orders, totalOrders] = await prisma.$transaction([
+        prisma.order.findMany({
+          where: whereClause,
+          include: {
+            orderStatus: true,
+            orderItems: {
+              include: {
+                product: {
+                  include: {
+                    images: {
+                      take: 1,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          orderBy: {
+            created_at: "desc",
+          },
+          skip: skip,
+          take: limit,
+        }),
+        prisma.order.count({
+          where: whereClause,
+        }),
+      ]);
+
+      const formattedOrders = orders.map((order) => {
+        const firstProductImage =
+          order.orderItems[0]?.product.images[0]?.image_url || null;
+        const totalItems = order.orderItems.reduce(
+          (sum, item) => sum + item.quantity,
+          0
+        );
+
+        return {
+          id: order.id,
+          createdAt: order.created_at,
+          totalPrice: order.total_price.toString(),
+          status: order.orderStatus.status,
+          totalItems,
+          firstProductImage,
+        };
+      });
+
+      const totalPages = Math.ceil(totalOrders / limit);
+
+      const responsePayload = {
+        orders: formattedOrders,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalOrders,
+        },
+      };
+
+      return ApiResponse.success(
+        res,
+        responsePayload,
+        "User orders fetched successfully"
+      );
+    }
+  );
 }
 
 export default OrderController;
