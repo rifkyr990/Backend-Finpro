@@ -86,6 +86,15 @@ class StockController {
         });
         // tentukan selisih antara prev qty dan updated stock qty
         const diff = updated_stock - prev_qty;
+
+        // cari data user
+        const user = await prisma.user.findUnique({
+          where: { id: user_id },
+          select: {
+            first_name: true,
+            last_name: true,
+          },
+        });
         // buat stock historynya
         const createStockHistory = await tx.stockHistory.create({
           data: {
@@ -98,6 +107,9 @@ class StockController {
             order_id: 123456,
             productStockId: updateStock.id,
             user_id: userId,
+            created_by_name: `${user?.first_name || ""} ${
+              user?.last_name || ""
+            }`,
             // user_id: "01c9874c-8985-40f1-8bde-b0d93aae9c1e", //dummy user sementara
           },
         });
@@ -201,12 +213,14 @@ class StockController {
           min_stock: true,
           reason: true,
           created_at: true,
+          created_by_name: true,
           created_by: {
             select: {
               first_name: true,
               last_name: true,
             },
           },
+
           productStock: {
             select: {
               store: {
@@ -221,6 +235,7 @@ class StockController {
           },
         },
       });
+      console.log(stockHistory);
 
       // summary dihitung tergantung ada/tidak storeId
       const totalAddition = stockHistory
@@ -290,6 +305,7 @@ class StockController {
           min_stock: true,
           reason: true,
           created_at: true,
+          created_by_name: true,
           created_by: {
             select: { first_name: true, last_name: true },
           },
@@ -306,29 +322,31 @@ class StockController {
         },
         orderBy: { created_at: "desc" },
       });
+      console.log(stockHistory);
       // penghitungan rekapitulasi untuk summary card
       let totalAddition = 0;
       let totalReduction = 0;
       let totalLatestStock = 0;
-      let totalOutofStock = 0;
+      let totalOutOfStock = 0;
 
       stockHistory.forEach((stock) => {
         if (stock.type === "IN") totalAddition += stock.quantity;
         if (stock.type === "OUT") totalReduction += stock.quantity;
-        totalLatestStock = stock.updated_stock;
-        if (stock.updated_stock <= 0) totalOutofStock++;
+        totalLatestStock += stock.updated_stock;
+        if (stock.updated_stock <= 0) totalOutOfStock++;
       });
 
+      const summary = {
+        totalAddition,
+        totalReduction,
+        totalLatestStock,
+        totalOutOfStock,
+      };
       ApiResponse.success(
         res,
         {
           stockHistory,
-          summary: {
-            totalAddition,
-            totalReduction,
-            totalLatestStock,
-            totalOutofStock,
-          },
+          summary,
         },
         "Get Product Stock History Success",
         200

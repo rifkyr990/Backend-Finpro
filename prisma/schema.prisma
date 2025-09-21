@@ -80,7 +80,7 @@ model User {
   is_verified              Boolean              @default(false)
   image_url         String?
   image_id          String?
-  store_id                         Int?
+  store_id                         Int? 
   created_at               DateTime             @default(now())
   updated_at               DateTime             @updatedAt
   socialLogins             SocialLogin[]
@@ -233,6 +233,7 @@ model StockHistory {
   productStockId Int 
   user_id String?
   created_by User? @relation(fields: [user_id],references: [id],onDelete: Cascade)
+  created_by_name String @default("No Name")
   productStock ProductStocks @relation(fields: [productStockId],references: [id],onDelete: Cascade) 
 }
 model ArchivedStockHistory {
