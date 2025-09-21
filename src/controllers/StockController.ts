@@ -45,8 +45,15 @@ class StockController {
   ) => {
     try {
       const store_id = req.params.id;
-      const { product_id, type, updated_stock, prev_qty, min_stock, reason } =
-        req.body;
+      const {
+        user_id,
+        product_id,
+        type,
+        updated_stock,
+        prev_qty,
+        min_stock,
+        reason,
+      } = req.body;
       // console.log(`Store id : ${store_id}, Product id : ${product_id}`);
 
       if (
@@ -60,6 +67,8 @@ class StockController {
         return ApiResponse.error(res, "Missing data", 400);
       }
       // const difference = quantity -
+
+      const userId = user_id.toString();
 
       const changeStock = await prisma.$transaction(async (tx) => {
         // update stok produk
@@ -88,6 +97,7 @@ class StockController {
             reason,
             order_id: 123456,
             productStockId: updateStock.id,
+            user_id: userId,
             // user_id: "01c9874c-8985-40f1-8bde-b0d93aae9c1e", //dummy user sementara
           },
         });

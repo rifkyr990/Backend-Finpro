@@ -97,9 +97,9 @@ CREATE TABLE "public"."UserAddress" (
     "phone" TEXT NOT NULL,
     "label" TEXT NOT NULL,
     "province" TEXT NOT NULL,
-    "province_id" TEXT NOT NULL,
+    "province_id" TEXT,
     "city" TEXT NOT NULL,
-    "city_id" TEXT NOT NULL,
+    "city_id" TEXT,
     "district" TEXT NOT NULL,
     "district_id" TEXT,
     "subdistrict" TEXT,
@@ -121,6 +121,7 @@ CREATE TABLE "public"."Store" (
     "address" TEXT,
     "province" TEXT,
     "city" TEXT,
+    "city_id" TEXT,
     "latitude" DOUBLE PRECISION,
     "longitude" DOUBLE PRECISION,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
@@ -257,10 +258,13 @@ CREATE TABLE "public"."OrderStatuses" (
 -- CreateTable
 CREATE TABLE "public"."OrderItem" (
     "id" SERIAL NOT NULL,
+    "store_id" INTEGER NOT NULL,
     "order_id" INTEGER NOT NULL,
     "product_id" INTEGER NOT NULL,
     "quantity" INTEGER NOT NULL,
     "price_at_purchase" DECIMAL(65,30) NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "OrderItem_pkey" PRIMARY KEY ("id")
 );
@@ -454,6 +458,9 @@ ALTER TABLE "public"."OrderItem" ADD CONSTRAINT "OrderItem_order_id_fkey" FOREIG
 
 -- AddForeignKey
 ALTER TABLE "public"."OrderItem" ADD CONSTRAINT "OrderItem_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "public"."Product"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."OrderItem" ADD CONSTRAINT "OrderItem_store_id_fkey" FOREIGN KEY ("store_id") REFERENCES "public"."Store"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."Payment" ADD CONSTRAINT "Payment_order_id_fkey" FOREIGN KEY ("order_id") REFERENCES "public"."Order"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

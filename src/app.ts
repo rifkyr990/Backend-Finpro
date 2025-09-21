@@ -14,6 +14,7 @@ import ProductRoutes from "./routes/ProductRoutes";
 import StockRoutes from "./routes/StockRoutes";
 import DiscountRoutes from "./routes/DiscountRoutes";
 import PaymentRoutes from "./routes/PaymentRoutes";
+import ReportRoutes from "./routes/ReportRoutes";
 
 dotenv.config();
 
@@ -49,6 +50,7 @@ class App {
     this.app.use("/api/orders", OrderRoutes);
     this.app.use("/api/shipping", ShippingRoutes);
     this.app.use("/api/payment", PaymentRoutes);
+    this.app.use("/api/report", ReportRoutes);
     this.app.get("/", (req, res) => {
       return ApiResponse.success(res, null, "API is running 🚀");
     });

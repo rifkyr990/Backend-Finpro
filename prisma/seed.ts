@@ -466,6 +466,7 @@ async function main() {
         data: {
           order_id: order.id,
           product_id: product.id,
+          store_id: order.store_id,
           quantity: qty,
           price_at_purchase: priceAtPurchase,
         },

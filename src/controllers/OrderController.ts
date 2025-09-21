@@ -456,25 +456,16 @@ class OrderController {
     }
   );
 
-  public static getAllOrderData = async (req: Request, res: Response) => {
-    try {
-      const result = await prisma.order.findMany();
-      ApiResponse.success(res, result, "Get all order success", 200);
-    } catch (error) {
-      ApiResponse.error(res, "Error get all order", 400);
+  public static getAllOrderData = asyncHandler(
+    async (req: AuthRequest, res: Response) => {
+      try {
+        const result = await prisma.order.findMany();
+        ApiResponse.success(res, result, "Get all order success", 200);
+      } catch (error) {
+        ApiResponse.error(res, "Error get all order", 400);
+      }
     }
-  };
-
-  // public static getAllOrderData = asyncHandler(
-  //   async (req: AuthRequest, res: Response) => {
-  //     try {
-  //       const result = await prisma.order.findMany();
-  //       ApiResponse.success(res, result, "Get all order success", 200);
-  //     } catch (error) {
-  //       ApiResponse.error(res, "Error get all order", 400);
-  //     }
-  //   }
-  // );
+  );
 }
 
 export default OrderController;
