@@ -1,6 +1,7 @@
 import prisma from "../config/prisma";
 import { ApiResponse } from "../utils/ApiResponse";
 import { Request, Response } from "express";
+import { Prisma } from "@prisma/client";
 
 class DiscountController {
   public static getAllDiscount = async (req: Request, res: Response) => {
@@ -106,6 +107,106 @@ class DiscountController {
     } catch (error) {
       ApiResponse.error(res, "Create Discount Error", 400);
       console.log(error);
+    }
+  };
+
+  public static verifyDiscount = async (req: Request, res: Response) => {
+    try {
+      const { code, subtotal, items } = req.body;
+
+      if (!code || subtotal === undefined || !items) {
+        return ApiResponse.error(
+          res,
+          "Code, subtotal, and cart items are required",
+          400
+        );
+      }
+
+      const discount = await prisma.discount.findFirst({
+        where: {
+          code: {
+            equals: code,
+            mode: "insensitive",
+          },
+          is_deleted: false,
+          start_date: { lte: new Date() },
+          end_date: { gte: new Date() },
+        },
+      });
+
+      if (!discount) {
+        return ApiResponse.error(
+          res,
+          "Promo code not found or has expired",
+          404
+        );
+      }
+
+      if (discount.type === "MIN_PURCHASE" && discount.minPurch) {
+        if (new Prisma.Decimal(subtotal).lt(discount.minPurch)) {
+          return ApiResponse.error(
+            res,
+            `Minimum purchase of Rp ${Number(discount.minPurch).toLocaleString(
+              "id-ID"
+            )} is required.`,
+            400
+          );
+        }
+      }
+
+      let discountValue = 0;
+      let frontendPromoType: "percentage" | "fixed" | "free_shipping" = "fixed";
+
+      if (discount.type === "FREE_ONGKIR") {
+        frontendPromoType = "free_shipping";
+        discountValue = 0;
+      } else if (discount.type === "B1G1") {
+        frontendPromoType = "fixed";
+        if (
+          discount.product_id &&
+          discount.minQty &&
+          discount.freeQty &&
+          items.length > 0
+        ) {
+          const product = await prisma.product.findUnique({
+            where: { id: discount.product_id },
+          });
+          const targetItem = items.find(
+            (item: any) => item.productId === discount.product_id
+          );
+
+          if (product && targetItem && targetItem.quantity >= discount.minQty) {
+            const timesToApply = Math.floor(
+              targetItem.quantity / discount.minQty
+            );
+            const freeItemsCount = timesToApply * discount.freeQty;
+            discountValue = Number(product.price) * freeItemsCount;
+          }
+        }
+      } else if (discount.discAmount) {
+        if (discount.valueType === "PERCENTAGE") {
+          frontendPromoType = "percentage";
+          discountValue = Number(discount.discAmount);
+        } else {
+          discountValue = Number(discount.discAmount);
+        }
+      }
+
+      const responsePayload = {
+        code: discount.code,
+        description: discount.description || "",
+        type: frontendPromoType,
+        value: discountValue,
+      };
+
+      ApiResponse.success(
+        res,
+        responsePayload,
+        "Promo code applied successfully"
+      );
+    } catch (error) {
+      console.log(error);
+      ApiResponse.error(res, "Error verifying promo code", 500);
     }
   };
 }

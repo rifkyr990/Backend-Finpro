@@ -8,6 +8,7 @@ class DiscountRoutes {
     this.initializeRoutes();
   }
   private initializeRoutes() {
+    this.router.post("/verify", DiscountController.verifyDiscount);
     this.router.get("/all", DiscountController.getAllDiscount); // arco
     this.router.patch("/delete/:id", DiscountController.softDeleteDiscount); //arco
     this.router.post("/new", DiscountController.createDiscount); //arco

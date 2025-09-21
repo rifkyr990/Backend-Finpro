@@ -72,15 +72,43 @@ class PaymentController {
       });
 
       let discountAmount = 0;
-      // 4. If a discount was used, add it as a negative line item
-      if (discountUsage && discountUsage.discount.discAmount) {
-        discountAmount = Number(discountUsage.discount.discAmount);
-        item_details.push({
-          id: `DISC-${discountUsage.discount.code}`,
-          price: -discountAmount,
-          quantity: 1,
-          name: `Discount (${discountUsage.discount.code})`,
-        });
+      // 4. If a discount was used, calculate its value correctly and add it as a negative line item
+      if (discountUsage && discountUsage.discount) {
+        const discount = discountUsage.discount;
+        if (discount.valueType === "PERCENTAGE" && discount.discAmount) {
+          discountAmount = Math.round(
+            (subtotal * Number(discount.discAmount)) / 100
+          );
+        } else if (discount.type === "B1G1") {
+          const targetItem = order.orderItems.find(
+            (item) => item.product_id === discount.product_id
+          );
+          if (
+            targetItem &&
+            discount.minQty &&
+            discount.freeQty &&
+            targetItem.quantity >= discount.minQty
+          ) {
+            const timesToApply = Math.floor(
+              targetItem.quantity / discount.minQty
+            );
+            const freeItemsCount = timesToApply * discount.freeQty;
+            discountAmount =
+              Math.round(Number(targetItem.price_at_purchase)) *
+              freeItemsCount;
+          }
+        } else {
+          discountAmount = Math.round(Number(discount.discAmount) || 0);
+        }
+
+        if (discountAmount > 0) {
+          item_details.push({
+            id: `DISC-${discount.code}`,
+            price: -discountAmount,
+            quantity: 1,
+            name: `Discount (${discount.code})`,
+          });
+        }
       }
 
       // 5. Calculate the actual shipping cost based on the final total
