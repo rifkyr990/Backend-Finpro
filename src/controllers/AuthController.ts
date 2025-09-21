@@ -52,6 +52,15 @@ class AuthController {
         return ApiResponse.success(res, result, "Verifikasi email berhasil dikirim ulang");
     })
 
+    // KIRIM ULANG VERIFIKASI EMAIL
+    public static resendRegistVerification = asyncHandler(async (req: Request, res: Response) => {
+        console.log("ini req: body", req.body);
+        const { email } = req.body;
+        const result = await AuthService.resendRegistVerification(email);
+
+        return ApiResponse.success(res, result, "Verifikasi email berhasil dikirim ulang");
+    })
+
     // REQUEST UNTUK RESET PASSWORD
     public static requestResetPassword = asyncHandler(async (req: Request, res: Response) => {
         const { email } = req.body;

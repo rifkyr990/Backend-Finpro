@@ -83,6 +83,7 @@ model User {
   store_id                         Int? 
   created_at               DateTime             @default(now())
   updated_at               DateTime             @updatedAt
+  
   socialLogins             SocialLogin[]
   verificationTokens       VerificationToken[]
   passwordResetTokens      PasswordResetToken[]
@@ -90,14 +91,13 @@ model User {
   addresses                UserAddress[]
   cart                     Cart?
   orders                   Order[]
-  store                    Store?               @relation(fields: [store_id], references: [id], onDelete: SetNull)
+  store Store? @relation(fields: [store_id], references: [id],onDelete: SetNull)
+  history StockHistory[]
+  archived_stock_history ArchivedStockHistory[]
   discountUsage            DiscountUsage[]
   referrals                Referral[]
   referralUsagesAsReferrer ReferralUsage[]      @relation("Referrer")
   referralUsagesAsReferee  ReferralUsage[]      @relation("Referee")
-  history StockHistory[]
-  archived_stock_history ArchivedStockHistory[]
-
 }
 
 model SocialLogin {
@@ -139,21 +139,25 @@ model UserProfile {
 }
 
 model UserAddress {
-  id          Int     @id @default(autoincrement())
-  user_id     String
-  name        String // Nama penerima
-  phone       String // Nomor telepon
-  label       String // RUMAH | KANTOR
-  province    String
-  city        String
-  district    String // Kecamatan
-  subdistrict String?
-  postal_code String
-  street      String // Nama jalan
-  detail      String? // Detail alamat (opsional)
-  latitude    Float?
-  longitude   Float?
-  is_primary  Boolean @default(false)
+  id            Int     @id @default(autoincrement())
+  user_id       String
+  name          String
+  phone         String
+  label         String
+  province      String
+  province_id   String?
+  city          String
+  city_id       String?
+  district      String
+  district_id   String?
+  subdistrict   String?
+  subdistrict_id String?
+  postal_code   String
+  street        String
+  detail        String?
+  latitude      Float?
+  longitude     Float?
+  is_primary    Boolean @default(false)
 
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
@@ -178,6 +182,7 @@ model Store {
   discount Discount[]
   orderItems OrderItem[]
 }
+
 
 model Product {
   id          Int      @id @default(autoincrement())
@@ -355,8 +360,8 @@ model PaymentProof {
 
 
 model Discount {
-    id               Int          @id @default(autoincrement())
-    name String
+  id               Int          @id @default(autoincrement())
+  name String
   product_id       Int?
   store_id         Int?
   code             String

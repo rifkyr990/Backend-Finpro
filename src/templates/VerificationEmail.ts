@@ -1,48 +1,102 @@
 export const verificationEmailTemplate = (verificationUrl: string) => {
     return `
     <!DOCTYPE html>
-    <html lang="en">
-    <head>
+  <html lang="id">
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Verifikasi Email</title>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px; }
-        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 6px; box-shadow: 0 0 8px rgba(0,0,0,0.1);}
-        h2 { color: #333; }
-        p { color: #555; font-size: 16px; }
-        .btn {
+      body {
+        font-family: "Segoe UI", Arial, sans-serif;
+        background-color: #f4f7fb;
+        margin: 0;
+        padding: 20px;
+        color: #333;
+      }
+      .container {
+        max-width: 600px;
+        margin: auto;
+        background: #ffffff;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+      }
+      .header {
+        background: #1c9e0b;
+        color: #fff;
+        text-align: center;
+        padding: 30px 20px;
+      }
+      .header h1 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 700;
+      }
+      .content {
+        padding: 30px 25px;
+        line-height: 1.6;
+      }
+      .content h2 {
+        color: #222;
+        font-size: 20px;
+        margin-bottom: 12px;
+      }
+      .content p {
+        font-size: 15px;
+        color: #555;
+        margin: 8px 0;
+      }
+      .btn {
         display: inline-block;
-        padding: 12px 24px;
-        background-color: #007bff;
-        color: white;
+        padding: 14px 28px;
+        margin: 20px 0;
+        background: #1c9e0b;
+        color: #fff !important;
         text-decoration: none;
-        border-radius: 4px;
-        font-weight: bold;
-        margin-top: 20px;
-        }
-        .footer {
-        margin-top: 30px;
+        font-weight: 600;
+        border-radius: 6px;
+        transition: opacity 0.3s ease;
+      }
+      .btn:hover {
+        opacity: 0.9;
+      }
+      .link {
+        word-break: break-all;
+        color: #007bff;
+        text-decoration: none;
+      }
+      .footer {
+        background: #f9fafc;
+        text-align: center;
         font-size: 12px;
         color: #888;
-        text-align: center;
-        }
+        padding: 20px;
+        border-top: 1px solid #eee;
+      }
     </style>
-    </head>
-    <body>
+  </head>
+  <body>
     <div class="container">
+      <div class="header">
+        <h1>FreshCart</h1>
+      </div>
+      <div class="content">
         <h2>Verifikasi Email Anda</h2>
-        <p>Hai,</p>
-        <p>Terima kasih sudah melakukan registrasi. Klik tombol di bawah untuk memverifikasi email dan mengatur password Anda:</p>
-        <a href="{{verificationUrl}}" class="btn">Verifikasi Email</a>
-        <p>Jika tombol di atas tidak bekerja, salin dan tempel tautan ini ke browser Anda:</p>
-        <p><a href=${verificationUrl}>${verificationUrl}</a></p>
+        <p>Halo,</p>
+        <p>Terima kasih sudah mendaftar. Klik tombol di bawah untuk memverifikasi email Anda:</p>
+        <p style="text-align:center;">
+          <a href="${verificationUrl}" class="btn">Verifikasi Email</a>
+        </p>
+        <p>Jika tombol di atas tidak berfungsi, salin tautan berikut ke browser Anda:</p>
+        <p><a href="${verificationUrl}" class="link">${verificationUrl}</a></p>
         <p>Jika Anda tidak melakukan permintaan ini, abaikan email ini.</p>
-        <div class="footer">
-        &copy; 2025 Your Company. All rights reserved.
-        </div>
+      </div>
+      <div class="footer">
+        &copy; 2025 FreshCart. Semua hak dilindungi.
+      </div>
     </div>
-    </body>
-    </html>
+  </body>
+  </html>
     `
 }
