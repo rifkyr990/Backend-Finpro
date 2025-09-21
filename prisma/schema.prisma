@@ -176,6 +176,7 @@ model Store {
   cart     Cart[]
   stocks   ProductStocks[]
   discount Discount[]
+  orderItems OrderItem[]
 }
 
 model Product {
@@ -305,13 +306,17 @@ model OrderStatuses {
 
 model OrderItem {
   id                Int     @id @default(autoincrement())
+  store_id Int
   order_id          Int
   product_id        Int
   quantity          Int
   price_at_purchase Decimal
+  created_at        DateTime      @default(now())
+  updated_at DateTime @updatedAt
 
   order   Order   @relation(fields: [order_id], references: [id], onDelete: Cascade)
   product Product @relation(fields: [product_id], references: [id], onDelete: Cascade)
+store   Store   @relation(fields: [store_id], references: [id], onDelete: Cascade)
 }
 
 model PaymentMethod {

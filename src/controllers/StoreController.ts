@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { ApiResponse } from "../utils/ApiResponse";
 import prisma from "../config/prisma";
 import { request } from "http";
+import { hashPassword } from "../utils/bcrypt";
 
 class StoreController {
   // get all stores data - arco start
@@ -20,7 +21,23 @@ class StoreController {
 
   public static getAllStoreAdmin = async (req: Request, res: Response) => {
     try {
-      const storeAdminData = await prisma.store.findMany({
+      // Store admin yang tidak punya store
+      const storeAdminWoStore = await prisma.user.findMany({
+        where: {
+          store_id: null,
+          role: "STORE_ADMIN",
+        },
+        select: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          role: true,
+          phone: true,
+        },
+      });
+
+      // Store admin yang punya store
+      const storeAdminWithStore = await prisma.store.findMany({
         select: {
           name: true,
           id: true,
@@ -35,6 +52,11 @@ class StoreController {
           },
         },
       });
+
+      const storeAdminData = {
+        withStore: storeAdminWithStore,
+        withoutStore: storeAdminWoStore,
+      };
       ApiResponse.success(res, storeAdminData, "Get Store Admins Success", 200);
     } catch (error) {
       ApiResponse.error(res, "Get All Store Admin Failed", 400);
@@ -43,18 +65,30 @@ class StoreController {
 
   public static postNewAdmin = async (req: Request, res: Response) => {
     try {
-      const { first_name, last_name, email, password, store_id, phone } =
+      let { first_name, last_name, email, password, store_id, phone } =
         req.body;
-      console.log(req.body);
+
+      email = email.trim().toLowerCase();
+      // checking for existing data
+      const checkData = await prisma.user.findUnique({
+        where: {
+          email,
+        },
+      });
+      if (checkData) {
+        throw new Error("There is an existing data");
+      }
+
+      const hashedPassword = await hashPassword(password);
       const data = await prisma.user.create({
         data: {
           first_name,
           last_name,
-          password,
+          password: hashedPassword,
           email,
-          store_id: store_id,
+          store_id: store_id ?? null,
           phone,
-          is_verified: false,
+          is_verified: true,
           role: "STORE_ADMIN",
           image_url: "https://iili.io/KRwBd91.png",
         },
