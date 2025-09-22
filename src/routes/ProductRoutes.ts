@@ -1,6 +1,8 @@
 import { Router } from "express";
 import ProductController from "../controllers/ProductController";
 import { upload } from "../middlewares/UploadMiddleware";
+import { authMiddleware } from "../middlewares/AuthMiddleware";
+import { authorizeRoles } from "../middlewares/AuthorizeRoles";
 
 class ProductRoutes {
   public router: Router;
@@ -36,6 +38,8 @@ class ProductRoutes {
     this.router.patch("/soft-delete", ProductController.softDeleteProduct); // arco
     this.router.post(
       "/new-product",
+      authMiddleware(),
+      authorizeRoles("SUPER_ADMIN"),
       upload.array("images", 4),
       ProductController.createNewProduct
     ); //arco

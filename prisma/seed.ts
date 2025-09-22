@@ -10,6 +10,7 @@ import {
   ProductCategory,
   Product,
   ValueType,
+  ApprovalStatus,
 } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -39,6 +40,7 @@ async function main() {
   await prisma.discount.deleteMany();
   await prisma.orderItem.deleteMany();
   await prisma.order.deleteMany();
+  await prisma.approvalRequest.deleteMany();
   console.log("Seeding database...");
 
   const customers: User[] = [];
@@ -494,6 +496,72 @@ async function main() {
       },
     });
   }
+
+  // APPROVAL REQUEST SEEDING
+  console.log("Seeding Approval Request . . . ");
+  const superAdmin = await prisma.user.findFirst({
+    where: { role: Role.SUPER_ADMIN },
+  });
+  const storeAdmins = await prisma.user.findMany({
+    where: { role: Role.STORE_ADMIN },
+    take: 5,
+  });
+
+  if (!superAdmin || storeAdmins.length === 0) {
+    console.log(
+      "Tidak ada super admin atau store admin, seeding approval skip"
+    );
+  } else {
+    const requestScenarios = [];
+
+    // scenario 1 : SA minta persetujuan update produk
+    const productToUpdate = faker.helpers.arrayElement(createdProducts);
+    requestScenarios.push({
+      actionType: "Update Product",
+      status: ApprovalStatus.PENDING,
+      payload: {
+        productId: productToUpdate.id,
+        productName: productToUpdate.name,
+        newData: {
+          price: faker.commerce.price({ min: 5000, max: 100000 }),
+          description: "Deskripsi produk diperbarui oleh admin toko.",
+        },
+      },
+      requesterId: faker.helpers.arrayElement(storeAdmins).id,
+      approverId: null,
+    });
+    // scenario 2 : SA minta persetujuan delete diskon
+    const discountToDelete = faker.helpers.arrayElement(discounts);
+    requestScenarios.push({
+      actionType: "DELETE_DISCOUNT",
+      status: ApprovalStatus.APPROVED,
+      payload: {
+        discountId: discountToDelete.id,
+        discountCode: discountToDelete.code,
+      },
+      requesterId: faker.helpers.arrayElement(storeAdmins).id,
+      approverId: superAdmin.id, // Sudah di-approve oleh super admin
+    });
+    // scenario 3 : SA minta persetujuan update stok dan ditolak
+    const stockToUpdate = await prisma.productStocks.findFirst();
+    if (stockToUpdate) {
+      requestScenarios.push({
+        actionType: "ADJUST_STOCK",
+        status: ApprovalStatus.REJECTED,
+        payload: {
+          productStockId: stockToUpdate.id,
+          newQuantity: 10,
+          reason: "Koreksi hasil stock opname.",
+        },
+        requesterId: faker.helpers.arrayElement(storeAdmins).id,
+        approverId: superAdmin.id, // Ditolak oleh super admin
+      });
+    }
+    await prisma.approvalRequest.createMany({
+      data: requestScenarios,
+    });
+  }
+
   console.log("Seeding completed!");
 }
 main()

@@ -69,6 +69,13 @@ enum ValueType {
   PERCENTAGE
 }
 
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED 
+}
+
+
 model User {
   id                       String               @id @default(uuid())
   first_name               String
@@ -98,6 +105,8 @@ model User {
   referrals                Referral[]
   referralUsagesAsReferrer ReferralUsage[]      @relation("Referrer")
   referralUsagesAsReferee  ReferralUsage[]      @relation("Referee")
+  approvalRequests ApprovalRequest[] @relation("Requester")
+  approvalsMade ApprovalRequest[] @relation("Approver")
 }
 
 model SocialLogin {
@@ -418,4 +427,20 @@ model ReferralUsage {
 
   referrer User @relation("Referrer", fields: [referrer_id], references: [id])
   referee  User @relation("Referee", fields: [referee_id], references: [id])
+}
+
+model ApprovalRequest {
+  id Int @id  @default(autoincrement())
+  actionType String
+  status ApprovalStatus @default(PENDING)
+  payload Json
+  notes String?
+  requesterId String
+  approverId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  requester User @relation("Requester",fields: [requesterId], references: [id],onDelete: Cascade)
+  approver User? @relation("Approver",fields: [approverId],references: [id],onDelete: Cascade)
+
 }

@@ -28,6 +28,9 @@ CREATE TYPE "public"."DiscountUsageStatus" AS ENUM ('APPLIED', 'CANCELLED');
 -- CreateEnum
 CREATE TYPE "public"."ValueType" AS ENUM ('NOMINAL', 'PERCENTAGE');
 
+-- CreateEnum
+CREATE TYPE "public"."ApprovalStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED');
+
 -- CreateTable
 CREATE TABLE "public"."User" (
     "id" TEXT NOT NULL,
@@ -97,9 +100,9 @@ CREATE TABLE "public"."UserAddress" (
     "phone" TEXT NOT NULL,
     "label" TEXT NOT NULL,
     "province" TEXT NOT NULL,
-    "province_id" TEXT NOT NULL,
+    "province_id" TEXT,
     "city" TEXT NOT NULL,
-    "city_id" TEXT NOT NULL,
+    "city_id" TEXT,
     "district" TEXT NOT NULL,
     "district_id" TEXT,
     "subdistrict" TEXT,
@@ -181,6 +184,7 @@ CREATE TABLE "public"."StockHistory" (
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "productStockId" INTEGER NOT NULL,
     "user_id" TEXT,
+    "created_by_name" TEXT NOT NULL DEFAULT 'No Name',
 
     CONSTRAINT "StockHistory_pkey" PRIMARY KEY ("id")
 );
@@ -257,10 +261,13 @@ CREATE TABLE "public"."OrderStatuses" (
 -- CreateTable
 CREATE TABLE "public"."OrderItem" (
     "id" SERIAL NOT NULL,
+    "store_id" INTEGER NOT NULL,
     "order_id" INTEGER NOT NULL,
     "product_id" INTEGER NOT NULL,
     "quantity" INTEGER NOT NULL,
     "price_at_purchase" DECIMAL(65,30) NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "OrderItem_pkey" PRIMARY KEY ("id")
 );
@@ -354,6 +361,21 @@ CREATE TABLE "public"."ReferralUsage" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "ReferralUsage_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."ApprovalRequest" (
+    "id" SERIAL NOT NULL,
+    "actionType" TEXT NOT NULL,
+    "status" "public"."ApprovalStatus" NOT NULL DEFAULT 'PENDING',
+    "payload" JSONB NOT NULL,
+    "notes" TEXT,
+    "requesterId" TEXT NOT NULL,
+    "approverId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ApprovalRequest_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -456,6 +478,9 @@ ALTER TABLE "public"."OrderItem" ADD CONSTRAINT "OrderItem_order_id_fkey" FOREIG
 ALTER TABLE "public"."OrderItem" ADD CONSTRAINT "OrderItem_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "public"."Product"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "public"."OrderItem" ADD CONSTRAINT "OrderItem_store_id_fkey" FOREIGN KEY ("store_id") REFERENCES "public"."Store"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "public"."Payment" ADD CONSTRAINT "Payment_order_id_fkey" FOREIGN KEY ("order_id") REFERENCES "public"."Order"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -487,3 +512,9 @@ ALTER TABLE "public"."ReferralUsage" ADD CONSTRAINT "ReferralUsage_referrer_id_f
 
 -- AddForeignKey
 ALTER TABLE "public"."ReferralUsage" ADD CONSTRAINT "ReferralUsage_referee_id_fkey" FOREIGN KEY ("referee_id") REFERENCES "public"."User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."ApprovalRequest" ADD CONSTRAINT "ApprovalRequest_requesterId_fkey" FOREIGN KEY ("requesterId") REFERENCES "public"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."ApprovalRequest" ADD CONSTRAINT "ApprovalRequest_approverId_fkey" FOREIGN KEY ("approverId") REFERENCES "public"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
