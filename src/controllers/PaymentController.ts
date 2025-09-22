@@ -51,7 +51,6 @@ class PaymentController {
         );
       }
 
-      // 1. Rebuild the item details from original prices for the breakdown
       const item_details = order.orderItems.map((item) => ({
         id: item.product_id.toString(),
         price: Math.round(Number(item.price_at_purchase)),
@@ -59,20 +58,18 @@ class PaymentController {
         name: item.product.name.substring(0, 50),
       }));
 
-      // 2. Calculate the subtotal from these original prices
       const subtotal = item_details.reduce(
         (acc, item) => acc + item.price * item.quantity,
         0
       );
 
-      // 3. Find if a discount was used for this order
       const discountUsage = await prisma.discountUsage.findFirst({
         where: { order_id: order.id },
         include: { discount: true },
       });
 
       let discountAmount = 0;
-      // 4. If a discount was used, calculate its value correctly and add it as a negative line item
+
       if (discountUsage && discountUsage.discount) {
         const discount = discountUsage.discount;
         if (discount.valueType === "PERCENTAGE" && discount.discAmount) {
@@ -94,8 +91,7 @@ class PaymentController {
             );
             const freeItemsCount = timesToApply * discount.freeQty;
             discountAmount =
-              Math.round(Number(targetItem.price_at_purchase)) *
-              freeItemsCount;
+              Math.round(Number(targetItem.price_at_purchase)) * freeItemsCount;
           }
         } else {
           discountAmount = Math.round(Number(discount.discAmount) || 0);
@@ -111,7 +107,6 @@ class PaymentController {
         }
       }
 
-      // 5. Calculate the actual shipping cost based on the final total
       const actualShippingCost =
         Math.round(Number(order.total_price)) - (subtotal - discountAmount);
 
@@ -128,7 +123,7 @@ class PaymentController {
       const parameter = {
         transaction_details: {
           order_id: midtransOrderId,
-          // The gross_amount is the final, definitive total from the order table
+
           gross_amount: Math.round(Number(order.total_price)),
         },
         customer_details: {
@@ -137,7 +132,7 @@ class PaymentController {
           email: order.user.email,
           phone: order.user.phone || undefined,
         },
-        // The item_details now include the discount, so their sum will match the gross_amount
+
         item_details,
         credit_card: {
           secure: true,
@@ -165,7 +160,6 @@ class PaymentController {
       console.log("--- Received Midtrans Notification ---");
       console.log(JSON.stringify(notification, null, 2));
 
-      // 1. Create a signature key for verification using the library's config
       const serverKey = snap.apiConfig.get().serverKey;
       const hashed = crypto
         .createHash("sha512")
@@ -177,7 +171,6 @@ class PaymentController {
         )
         .digest("hex");
 
-      // 2. Compare the generated signature with the one from Midtrans
       if (hashed !== notification.signature_key) {
         console.log("--- SIGNATURE MISMATCH ---");
         console.log("Generated Signature:", hashed);
@@ -185,7 +178,6 @@ class PaymentController {
         return ApiResponse.error(res, "Invalid signature", 403);
       }
 
-      // 3. Extract our internal order ID from Midtrans's order_id
       const midtransOrderId = notification.order_id as string;
       const orderIdString = midtransOrderId.split("-")[1];
 
@@ -204,20 +196,16 @@ class PaymentController {
 
       const transactionStatus = notification.transaction_status;
 
-      // 4. Handle successful payment
       if (transactionStatus == "settlement" || transactionStatus == "capture") {
         await prisma.$transaction(async (tx) => {
           const order = await tx.order.findUnique({ where: { id: orderId } });
 
-          // Only update if the order is still pending payment
           if (order && order.order_status_id === 1) {
-            // Update order status to PAID (awaiting processing)
             await tx.order.update({
               where: { id: orderId },
-              data: { order_status_id: 2 }, // 2 = PAID
+              data: { order_status_id: 3 },
             });
 
-            // Update the corresponding payment record
             await tx.payment.updateMany({
               where: { order_id: orderId },
               data: { status: "SUCCESS" },
@@ -225,9 +213,7 @@ class PaymentController {
           }
         });
       }
-      // Note: You can add more handlers here for 'pending', 'expire', etc.
 
-      // 5. Respond to Midtrans
       return ApiResponse.success(res, null, "Notification processed.", 200);
     }
   );

@@ -23,12 +23,42 @@ class StoreRoutes {
     ); //get all stores - arco
 
     // AFTER AUTH MIDDLEWARE ()
-    // this.router.get("/all", authMiddleware(),authorizeRoles("SUPER_ADMIN"),StoreController.getAllStores); //get all stores - arco
-    // this.router.post("/",authMiddleware(),authorizeRoles("SUPER_ADMIN"), StoreController.createStore);
-    // this.router.get("/store-admins",authMiddleware(),authorizeRoles("SUPER_ADMIN"), StoreController.getAllStoreAdmin); //get all stores - arco
-    // this.router.delete("/:id",authMiddleware(),authorizeRoles("SUPER_ADMIN"),  StoreController.deleteStoreById); // arco
-    // this.router.patch("/:id",authMiddleware(),authorizeRoles("SUPER_ADMIN"),  StoreController.patchStoreById); // arco
-    // this.router.patch("/relocate-admin/:id",authMiddleware(),authorizeRoles("SUPER_ADMIN"), StoreController.patchStoreAdminRelocation); //get all stores - arco
+    this.router.get(
+      "/all",
+      authMiddleware(),
+      authorizeRoles("SUPER_ADMIN"),
+      StoreController.getAllStores
+    ); //get all stores - arco
+    this.router.post(
+      "/",
+      authMiddleware(),
+      authorizeRoles("SUPER_ADMIN"),
+      StoreController.createStore
+    );
+    this.router.get(
+      "/store-admins",
+      authMiddleware(),
+      authorizeRoles("SUPER_ADMIN"),
+      StoreController.getAllStoreAdmin
+    ); //get all stores - arco
+    this.router.delete(
+      "/:id",
+      authMiddleware(),
+      authorizeRoles("SUPER_ADMIN"),
+      StoreController.deleteStoreById
+    ); // arco
+    this.router.patch(
+      "/:id",
+      authMiddleware(),
+      authorizeRoles("SUPER_ADMIN"),
+      StoreController.patchStoreById
+    ); // arco
+    this.router.patch(
+      "/relocate-admin/:id",
+      authMiddleware(),
+      authorizeRoles("SUPER_ADMIN"),
+      StoreController.patchStoreAdminRelocation
+    ); //get all stores - arco
   }
 }
 

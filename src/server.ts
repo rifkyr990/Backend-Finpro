@@ -7,3 +7,4 @@ const server = new App(PORT);
 server.listen();
 
 CronService.startOrderCancellationJob();
+CronService.startOrderAutoConfirmationJob();

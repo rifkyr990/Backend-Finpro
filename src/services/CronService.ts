@@ -77,7 +77,6 @@ class CronService {
                   reason: `Order #${order.id} cancelled (unpaid)`,
                   order_id: order.id,
                   productStockId: productStock.id,
-                  // Note: 'user_id' can be null for system actions
                 },
               });
             }
@@ -89,6 +88,58 @@ class CronService {
         }
       } catch (error) {
         console.error("CRON: Error during order cancellation job:", error);
+      }
+    });
+  }
+
+  public static startOrderAutoConfirmationJob() {
+    cron.schedule("0 0 * * *", async () => {
+      console.log("CRON: Checking for shipped orders to auto-confirm...");
+
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+      try {
+        const deliveredStatus = await prisma.orderStatuses.findUniqueOrThrow({
+          where: { status: OrderStatus.DELIVERED },
+        });
+
+        const ordersToConfirm = await prisma.order.findMany({
+          where: {
+            orderStatus: {
+              status: OrderStatus.SHIPPED,
+            },
+            updated_at: {
+              lte: sevenDaysAgo,
+            },
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        if (ordersToConfirm.length === 0) {
+          console.log("CRON: No orders to auto-confirm.");
+          return;
+        }
+
+        const orderIdsToUpdate = ordersToConfirm.map((order) => order.id);
+
+        const { count } = await prisma.order.updateMany({
+          where: {
+            id: {
+              in: orderIdsToUpdate,
+            },
+          },
+          data: {
+            order_status_id: deliveredStatus.id,
+          },
+        });
+
+        console.log(
+          `CRON: Successfully auto-confirmed ${count} delivered orders.`
+        );
+      } catch (error) {
+        console.error("CRON: Error during order auto-confirmation job:", error);
       }
     });
   }

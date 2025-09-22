@@ -128,7 +128,7 @@ class AuthService {
         const isValid = await comparePassword(password, user.password);
         if (!isValid) throw new Error("Email atau password salah");
 
-        const token = signToken({ id: user.id, role: user.role, email: user.email });
+        const token = signToken({ id: user.id, role: user.role, email: user.email, store_id: user.store_id });
         return { user, token };
     }
 
