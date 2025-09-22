@@ -167,6 +167,7 @@ model Store {
   name          String
   address       String?
   province      String?
+  province_id   String?
   city          String?
   city_id       String?   
   latitude      Float?

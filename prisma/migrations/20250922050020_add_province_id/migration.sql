@@ -120,6 +120,7 @@ CREATE TABLE "public"."Store" (
     "name" TEXT NOT NULL,
     "address" TEXT,
     "province" TEXT,
+    "province_id" TEXT,
     "city" TEXT,
     "city_id" TEXT,
     "latitude" DOUBLE PRECISION,

@@ -132,7 +132,9 @@ class StoreController {
         name,
         address,
         city,
+        city_id,
         province,
+        province_id,
         latitude,
         longitude,
         is_active,
@@ -145,12 +147,18 @@ class StoreController {
           name,
           address,
           city,
+          city_id,
           province,
+          province_id,
           latitude,
           longitude,
           is_active,
-        },
+          // admins: {
+          //   connect: adminIds.map(id => ({ id })),
+          // }
+        }
       });
+
 
       // 2. Update admin agar terhubung ke store & ubah role ke STORE_ADMIN
       if (adminIds && adminIds.length > 0) {
@@ -193,33 +201,46 @@ class StoreController {
   };
 
   public static patchStoreById = async (req: Request, res: Response) => {
-    try {
-      const storeId = Number(req.params.id);
-      const { name, address, city, province, latitude, longitude, is_active } =
-        req.body.payload;
-      const updateStore = await prisma.store.update({
-        where: { id: storeId },
-        data: {
-          name,
-          address,
-          city,
-          province,
-          latitude,
-          longitude,
-          is_active,
-        },
-      });
-      // console.log(req.body.payload);
-      ApiResponse.success(
-        res,
-        updateStore,
-        "Update Store Details Success!",
-        200
-      );
-    } catch (error) {
-      ApiResponse.error(res, "Update Store Error", 400);
-    }
-  };
+  try {
+    const storeId = Number(req.params.id);
+    const {
+      name,
+      address,
+      city,
+      city_id,
+      province,
+      province_id,
+      latitude,
+      longitude,
+      is_active,
+    } = req.body.payload;
+
+    const updateStore = await prisma.store.update({
+      where: { id: storeId },
+      data: {
+        name,
+        address,
+        city,
+        city_id,
+        province,
+        province_id,
+        latitude,
+        longitude,
+        is_active,
+      },
+    });
+
+    ApiResponse.success(
+      res,
+      updateStore,
+      "Update Store Details Success!",
+      200
+    );
+  } catch (error) {
+    ApiResponse.error(res, "Update Store Error", 400);
+  }
+};
+
   public static patchStoreAdminRelocation = async (
     req: Request,
     res: Response
