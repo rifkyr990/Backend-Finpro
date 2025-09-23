@@ -14,10 +14,12 @@ class OrderController {
         return ApiResponse.error(res, "Unauthorized", 401);
       }
 
-      const { addressId, shippingCost, paymentMethodId, promoCode } = req.body;
+      const { addressId, storeId, shippingCost, paymentMethodId, promoCode } =
+        req.body;
 
       if (
         typeof addressId !== "number" ||
+        typeof storeId !== "number" ||
         typeof shippingCost !== "string" ||
         typeof paymentMethodId !== "number"
       ) {
@@ -29,8 +31,11 @@ class OrderController {
       }
 
       const newOrder = await prisma.$transaction(async (tx) => {
-        const userCart = await tx.cart.findUnique({
-          where: { user_id: userId },
+        const userCart = await tx.cart.findFirst({
+          where: {
+            user_id: userId,
+            store_id: storeId, // pastikan ambil cart dari store yang dipilih
+          },
           include: { cartItems: { include: { product: true } } },
         });
 
@@ -184,12 +189,12 @@ class OrderController {
         const order = await tx.order.create({
           data: {
             user_id: userId,
-            store_id: userCart.store_id,
+            store_id: storeId, // pakai yang dari req.body
             destination_address: destinationAddress,
             latitude: userAddress.latitude,
             longitude: userAddress.longitude,
             total_price: totalPrice,
-            order_status_id: 1,
+            order_status_id: 1, // Assumes 1 = PENDING_PAYMENT
           },
         });
 
@@ -199,9 +204,9 @@ class OrderController {
             product_id: item.product_id,
             quantity: item.quantity,
             price_at_purchase: item.product.price,
+            store_id: storeId,
           })),
         });
-
         await tx.payment.create({
           data: {
             order_id: order.id,

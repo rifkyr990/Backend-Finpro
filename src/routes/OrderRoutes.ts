@@ -59,7 +59,7 @@ class OrderRoutes {
       authorizeRoles("SUPER_ADMIN", "STORE_ADMIN"),
       OrderController.getAdminOrderDetail
     );
-     this.router.patch(
+    this.router.patch(
       "/admin/:orderId/confirm-payment",
       authMiddleware(),
       authorizeRoles("SUPER_ADMIN", "STORE_ADMIN"),

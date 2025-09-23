@@ -39,6 +39,7 @@ class CartController {
       }
 
       const formattedCart = {
+        storeId: cart.store?.id || null,
         store: cart.store,
         cartItems: cart.cartItems.map((item) => ({
           id: item.id,
@@ -127,6 +128,10 @@ class CartController {
       const productMap = new Map(products.map((p) => [p.id, p]));
 
       const validItems = items.filter((item) => productMap.has(item.productId));
+      if (validItems.length === 0) {
+        return ApiResponse.error(res, "No valid products in request", 400);
+      }
+
 
       if (validItems.length > 0) {
         await tx.cartItem.createMany({

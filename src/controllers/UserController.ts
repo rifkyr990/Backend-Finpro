@@ -4,6 +4,7 @@ import { asyncHandler } from "../utils/AsyncHandler";
 import { ApiResponse } from "../utils/ApiResponse";
 import UserService from "../services/UserService";
 import prisma from "../config/prisma";
+import { Prisma } from "@prisma/client";
 
 class UserController {
   public static getAllUsers = async (req: Request, res: Response) => {
@@ -38,17 +39,65 @@ class UserController {
     }
   };
 
+  // DATA LAMA
+  // public static getAllCustomers = async (req: Request, res: Response) => {
+  //   try {
+  //     const customersData = await prisma.user.findMany({
+  //       where: { role: "CUSTOMER", store_id: null },
+  //       include: {
+  //         addresses: true,
+  //       },
+  //     });
+  //     return ApiResponse.success(
+  //       res,
+  //       customersData,
+  //       "Get All Customers Data Success"
+  //     );
+  //   } catch (error) {
+  //     ApiResponse.error(res, "Error get customers data", 400);
+  //   }
+  // };
   public static getAllCustomers = async (req: Request, res: Response) => {
     try {
-      const customersData = await prisma.user.findMany({
-        where: { role: "CUSTOMER", store_id: null },
-        include: {
-          addresses: true,
-        },
-      });
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const search = (req.query.search as string) || "";
+      const status = req.query.status as string;
+
+      const skip = (page - 1) * limit;
+      const where: Prisma.UserWhereInput = {
+        role: "CUSTOMER",
+        OR: [
+          { first_name: { contains: search, mode: "insensitive" } },
+          { last_name: { contains: search, mode: "insensitive" } },
+          { email: { contains: search, mode: "insensitive" } },
+        ],
+      };
+      if (status === "verified") {
+        where.is_verified === true;
+      } else if (status === "unverified") {
+        where.is_verified === false;
+      }
+      const [customers, totalCustomers] = await prisma.$transaction([
+        prisma.user.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy: { created_at: "desc" },
+          include: { addresses: true },
+        }),
+        prisma.user.count({ where }),
+      ]);
+      const totalPages = Math.ceil(totalCustomers / limit);
+
       return ApiResponse.success(
         res,
-        customersData,
+        {
+          data: customers,
+          pagination: { total: totalCustomers },
+          page,
+          totalPages,
+        },
         "Get All Customers Data Success"
       );
     } catch (error) {
@@ -106,7 +155,7 @@ class UserController {
   //     );
   //   }
   // );
-  
+
   public static deleteUserById = async (req: Request, res: Response) => {
     try {
       const userId = req.params.id;
@@ -188,7 +237,8 @@ class UserController {
     }
   );
 
-  public static updateProfile = asyncHandler(async (req: Request, res: Response) => {
+  public static updateProfile = asyncHandler(
+    async (req: Request, res: Response) => {
       const userId = req.user.id;
       const updated = await UserService.updateProfile(userId, req.body);
 
@@ -220,25 +270,32 @@ class UserController {
     }
   };
 
-  public static changePassword = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user.id;
-    const { oldPassword, newPassword } = req.body;
-    if (!oldPassword || !newPassword) {
-        return ApiResponse.error(res, "Password lama & baru wajib diisi dulu gaes", 400);
-    } 
+  public static changePassword = asyncHandler(
+    async (req: Request, res: Response) => {
+      const userId = req.user.id;
+      const { oldPassword, newPassword } = req.body;
+      if (!oldPassword || !newPassword) {
+        return ApiResponse.error(
+          res,
+          "Password lama & baru wajib diisi dulu gaes",
+          400
+        );
+      }
 
-    await UserService.changePassword(userId, oldPassword, newPassword);
-        
-    return ApiResponse.success(res, null, "Password berhasil dirubah");
-  });
+      await UserService.changePassword(userId, oldPassword, newPassword);
 
-  public static verifyNewEmail = asyncHandler(async (req: Request, res: Response) => {
-    const { token } = req.body;
-    const user = await UserService.verifyNewEmail(token);
+      return ApiResponse.success(res, null, "Password berhasil dirubah");
+    }
+  );
 
-    return ApiResponse.success(res, user, "Email baru berhasil diverifikasi");
-  });
+  public static verifyNewEmail = asyncHandler(
+    async (req: Request, res: Response) => {
+      const { token } = req.body;
+      const user = await UserService.verifyNewEmail(token);
 
+      return ApiResponse.success(res, user, "Email baru berhasil diverifikasi");
+    }
+  );
 }
 
 export default UserController;
