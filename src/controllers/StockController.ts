@@ -342,6 +342,7 @@ class StockController {
         totalLatestStock,
         totalOutOfStock,
       };
+      console.log(summary)
       ApiResponse.success(
         res,
         {
