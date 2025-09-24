@@ -11,6 +11,13 @@ class CartController {
       if (!userId) {
         return ApiResponse.error(res, "Unauthorized", 401);
       }
+      if (req.user?.role !== "CUSTOMER") {
+        return ApiResponse.error(
+          res,
+          "Forbidden: Admins cannot access the cart.",
+          403
+        );
+      }
 
       const cart = await prisma.cart.findUnique({
         where: { user_id: userId },
@@ -68,6 +75,13 @@ class CartController {
     const userId = req.user?.id;
     if (!userId) {
       return ApiResponse.error(res, "Unauthorized", 401);
+    }
+    if (req.user?.role !== "CUSTOMER") {
+      return ApiResponse.error(
+        res,
+        "Forbidden: Admins cannot add items to the cart.",
+        403
+      );
     }
 
     const user = await prisma.user.findUnique({ where: { id: userId } });

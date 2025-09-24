@@ -77,9 +77,16 @@ class CronService {
                   reason: `Order #${order.id} cancelled (unpaid)`,
                   order_id: order.id,
                   productStockId: productStock.id,
+                  created_by_name: "System",
                 },
               });
             }
+
+            // Release the promo code
+            await tx.discountUsage.updateMany({
+              where: { order_id: order.id, status: "APPLIED" },
+              data: { status: "CANCELLED" },
+            });
 
             console.log(
               `CRON: Successfully cancelled Order #${order.id} and restored stock.`

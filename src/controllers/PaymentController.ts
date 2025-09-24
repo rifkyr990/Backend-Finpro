@@ -72,29 +72,24 @@ class PaymentController {
 
       if (discountUsage && discountUsage.discount) {
         const discount = discountUsage.discount;
-        if (discount.valueType === "PERCENTAGE" && discount.discAmount) {
-          discountAmount = Math.round(
-            (subtotal * Number(discount.discAmount)) / 100
-          );
-        } else if (discount.type === "B1G1") {
+        if (discount.type === "B1G1" && discount.product_id) {
           const targetItem = order.orderItems.find(
             (item) => item.product_id === discount.product_id
           );
-          if (
-            targetItem &&
-            discount.minQty &&
-            discount.freeQty &&
-            targetItem.quantity >= discount.minQty
-          ) {
-            const timesToApply = Math.floor(
-              targetItem.quantity / discount.minQty
-            );
-            const freeItemsCount = timesToApply * discount.freeQty;
-            discountAmount =
-              Math.round(Number(targetItem.price_at_purchase)) * freeItemsCount;
+          if (targetItem) {
+            discountAmount = Math.round(Number(targetItem.price_at_purchase));
           }
-        } else {
-          discountAmount = Math.round(Number(discount.discAmount) || 0);
+        } else if (
+          (discount.type === "MANUAL" || discount.type === "MIN_PURCHASE") &&
+          discount.discAmount
+        ) {
+          if (discount.valueType === "PERCENTAGE") {
+            discountAmount = Math.round(
+              (subtotal * Number(discount.discAmount)) / 100
+            );
+          } else {
+            discountAmount = Math.round(Number(discount.discAmount));
+          }
         }
 
         if (discountAmount > 0) {
@@ -198,9 +193,13 @@ class PaymentController {
 
       if (transactionStatus == "settlement" || transactionStatus == "capture") {
         await prisma.$transaction(async (tx) => {
-          const order = await tx.order.findUnique({ where: { id: orderId } });
+          const order = await tx.order.findUnique({
+            where: { id: orderId },
+            include: { user: true },
+          });
 
-          if (order && order.order_status_id === 1) {
+          if (order && order.user && order.order_status_id === 1) {
+            // Update order status to PROCESSING (ID 3)
             await tx.order.update({
               where: { id: orderId },
               data: { order_status_id: 3 },
@@ -208,8 +207,11 @@ class PaymentController {
 
             await tx.payment.updateMany({
               where: { order_id: orderId },
-              data: { status: "SUCCESS" },
+              data: { status: "SUCCESS", paid_at: new Date() },
             });
+
+            // Send the confirmation email
+            await EmailService.sendPaymentConfirmedEmail(order.user, order);
           }
         });
       }

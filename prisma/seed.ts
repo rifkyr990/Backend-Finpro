@@ -55,7 +55,9 @@ async function main() {
         name: faker.person.fullName(),
         phone: faker.phone.number(),
         label: faker.helpers.arrayElement(["RUMAH", "KANTOR"]),
+        province_id: faker.string.numeric(2), // Example: "11"
         province: faker.location.state(),
+        city_id: faker.string.numeric(3), // Example: "1101"
         city: faker.location.city(),
         district: faker.location.county(),
         postal_code: faker.location.zipCode(),
@@ -91,7 +93,9 @@ async function main() {
         name: faker.company.name(),
         address: faker.location.streetAddress(),
         province: faker.location.state(),
+        province_id: faker.string.numeric(2),
         city: faker.location.city(),
+        city_id: faker.string.numeric(4),
         latitude: faker.location.latitude(),
         longitude: faker.location.longitude(),
         is_active: faker.datatype.boolean(),

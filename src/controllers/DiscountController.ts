@@ -142,6 +142,23 @@ class DiscountController {
         );
       }
 
+      // Check if product-specific discount is valid for the cart items
+      if (
+        (discount.type === "MANUAL" || discount.type === "B1G1") &&
+        discount.product_id
+      ) {
+        const requiredItem = items.find(
+          (item: any) => item.productId === discount.product_id
+        );
+        if (!requiredItem) {
+          return ApiResponse.error(
+            res,
+            "Required product for this promo is not in your cart.",
+            400
+          );
+        }
+      }
+
       if (discount.type === "MIN_PURCHASE" && discount.minPurch) {
         if (new Prisma.Decimal(subtotal).lt(discount.minPurch)) {
           return ApiResponse.error(
@@ -162,12 +179,7 @@ class DiscountController {
         discountValue = 0;
       } else if (discount.type === "B1G1") {
         frontendPromoType = "fixed";
-        if (
-          discount.product_id &&
-          discount.minQty &&
-          discount.freeQty &&
-          items.length > 0
-        ) {
+        if (discount.product_id) {
           const product = await prisma.product.findUnique({
             where: { id: discount.product_id },
           });
@@ -175,19 +187,20 @@ class DiscountController {
             (item: any) => item.productId === discount.product_id
           );
 
-          if (product && targetItem && targetItem.quantity >= discount.minQty) {
-            const timesToApply = Math.floor(
-              targetItem.quantity / discount.minQty
-            );
-            const freeItemsCount = timesToApply * discount.freeQty;
-            discountValue = Number(product.price) * freeItemsCount;
+          // B1G1 logic: if the required item exists, the discount is its price.
+          if (product && targetItem && targetItem.quantity >= 1) {
+            discountValue = Number(product.price);
           }
         }
-      } else if (discount.discAmount) {
+      } else if (
+        discount.discAmount &&
+        (discount.type === "MANUAL" || discount.type === "MIN_PURCHASE")
+      ) {
         if (discount.valueType === "PERCENTAGE") {
           frontendPromoType = "percentage";
           discountValue = Number(discount.discAmount);
         } else {
+          frontendPromoType = "fixed";
           discountValue = Number(discount.discAmount);
         }
       }
