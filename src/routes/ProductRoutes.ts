@@ -37,11 +37,6 @@ class ProductRoutes {
       authMiddleware(),
       ProductController.editCategory
     );
-    this.router.delete(
-      "/category",
-      authMiddleware(),
-      ProductController.deleteCategory
-    );
     this.router.patch(
       "/category",
       authMiddleware(),
@@ -58,7 +53,6 @@ class ProductRoutes {
       ProductController.createProductCategory
     );
     this.router.get("/", ProductController.getAllProductByLocation);
-    this.router.delete("/", authMiddleware(), ProductController.deleteProduct);
     this.router.patch(
       "/soft-delete",
       authMiddleware(),

@@ -1,83 +1,147 @@
-// import prisma from "../config/prisma";
-// import { ApiResponse } from "../utils/ApiResponse";
+import cloudinary from "../config/cloudinary";
+import prisma from "../config/prisma";
 
-// class ProductService {
-//   public static createNewProduct = async (
-//     productData: {
-//       name: string;
-//       description: string;
-//       price: string;
-//       category: string;
-//     },
-//     files: Express.Multer.File[]
-//   ) => {
-//     const { name, description, price, category } = productData;
+class ProductService {
+  public static createNewProduct = async (
+    productData: {
+      name: string;
+      description: string;
+      price: string;
+      category: string;
+    },
+    files: Express.Multer.File[]
+  ) => {
+    const { name, description, price, category } = productData;
 
-//     // find category id berdasarkan nama category dari body
-//     const categoryData = await prisma.productCategory.findUnique({
-//       where: { category: category },
-//     });
+    // find category id berdasarkan nama category dari body
+    const categoryData = await prisma.productCategory.findUnique({
+      where: { category: category },
+    });
 
-//     if (!categoryData) return {
-//         throw new Error ("Category not found")
-//     }
+    if (!categoryData) {
+      throw new Error("Category not found");
+    }
 
-//     for (const file of req.files as Express.Multer.File[]) {
-//       const uploaded = await new Promise<any>((resolve, reject) => {
-//         cloudinary.uploader
-//           .upload_stream(
-//             {
-//               folder: "product_images",
-//               resource_type: "image",
-//             },
-//             (error, result) => {
-//               if (error) reject(error);
-//               else resolve(result);
-//             }
-//           )
-//           .end(file.buffer);
-//       });
+    const uploadedImageUrls = await Promise.all(
+      files.map(async (file) => {
+        const uploaded = await new Promise<any>((resolve, reject) => {
+          cloudinary.uploader
+            .upload_stream(
+              {
+                folder: "product_images",
+                resource_type: "image",
+              },
+              (error, result) => {
+                if (error) reject(error);
+                else resolve(result);
+              }
+            )
+            .end(file.buffer);
+        });
 
-//       uploadedImageUrls.push(uploaded.secure_url);
+        return uploaded.secure_url;
+      })
+    );
 
-//       // Debugging
-//       // console.log("Name:", name);
-//       // console.log("Description:", description);
-//       // console.log("Price:", price);
-//       // console.log("Category:", category);
-//       // console.log("All Cloudinary URLs:", uploadedImageUrls);
-//     }
-//     // Create BE Prisma
-//     const newProduct = await prisma.product.create({
-//       data: {
-//         name,
-//         description,
-//         price,
-//         category: {
-//           connect: { id: categoryData.id },
-//         },
-//         images: {
-//           create: uploadedImageUrls.map((url) => ({ image_url: url })),
-//         },
-//       },
-//     });
+    const newProduct = await prisma.product.create({
+      data: {
+        name,
+        description,
+        price,
+        category: {
+          connect: { id: categoryData.id },
+        },
+        images: {
+          create: uploadedImageUrls.map((url) => ({ image_url: url })),
+        },
+      },
+    });
 
-//     // Ambil semua store
-//     const allStores = await prisma.store.findMany();
+    const allStores = await prisma.store.findMany();
 
-//     // Loop semua store, buat product stock qty 0
-//     const createStocksPromises = allStores.map((store) =>
-//       prisma.productStocks.create({
-//         data: {
-//           product_id: newProduct.id,
-//           store_id: store.id,
-//           stock_quantity: 0,
-//         },
-//       })
-//     );
+    const createStocksPromises = allStores.map((store) =>
+      prisma.productStocks.create({
+        data: {
+          product_id: newProduct.id,
+          store_id: store.id,
+          stock_quantity: 0,
+        },
+      })
+    );
 
-//     await Promise.all(createStocksPromises);
-//   };
-// }
+    await Promise.all(createStocksPromises);
+    return newProduct;
+  };
+  public static updateProductById = async (
+    productId: number,
+    productData: {
+      name: string;
+      description: string;
+      price: string;
+      category: string;
+    },
+    files: Express.Multer.File[]
+  ) => {
+    const { name, description, price, category } = productData;
 
-// export default ProductService;
+    const existingProduct = await prisma.product.findUnique({
+      where: { id: productId },
+      include: { images: true, category: true },
+    });
+    if (!existingProduct) {
+      throw new Error("Product not found");
+    }
+
+    // Cari category ID
+    const categoryData = await prisma.productCategory.findUnique({
+      where: { category },
+    });
+    if (!categoryData) {
+      throw new Error("Category not found");
+    }
+
+    let uploadedImageUrls: string[] = [];
+
+    // Jika ada file baru, upload ke Cloudinary
+    if (files && files.length > 0) {
+      uploadedImageUrls = await Promise.all(
+        files.map(async (file) => {
+          const uploaded = await new Promise<any>((resolve, reject) => {
+            cloudinary.uploader
+              .upload_stream(
+                { folder: "product_images", resource_type: "image" },
+                (error, result) => {
+                  if (error) reject(error);
+                  else resolve(result);
+                }
+              )
+              .end(file.buffer);
+          });
+          return uploaded.secure_url;
+        })
+      );
+    }
+
+    const dataToUpdate: any = {
+      name,
+      description,
+      price: price.toString(), // jika di schema price = string
+      category: { connect: { id: categoryData.id } },
+    };
+    if (uploadedImageUrls.length > 0) {
+      dataToUpdate.images = {
+        deleteMany: {},
+        create: uploadedImageUrls.map((url) => ({ image_url: url })),
+      };
+    }
+
+    const updatedProduct = await prisma.product.update({
+      where: { id: productId },
+      data: dataToUpdate,
+      include: { images: true, category: true },
+    });
+    return updatedProduct;
+  };
+}
+
+export default ProductService;
