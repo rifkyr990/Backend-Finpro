@@ -54,6 +54,13 @@ class OrderRoutes {
     );
 
     this.router.get(
+      "/admin/summary",
+      authMiddleware(),
+      authorizeRoles("SUPER_ADMIN", "STORE_ADMIN"),
+      OrderController.getOrderSummary
+    );
+
+    this.router.get(
       "/admin/:orderId",
       authMiddleware(),
       authorizeRoles("SUPER_ADMIN", "STORE_ADMIN"),
@@ -82,6 +89,13 @@ class OrderRoutes {
       authMiddleware(),
       authorizeRoles("SUPER_ADMIN", "STORE_ADMIN"),
       OrderController.adminCancelOrder
+    );
+
+    this.router.patch(
+      "/admin/:orderId/mark-refunded",
+      authMiddleware(),
+      authorizeRoles("SUPER_ADMIN", "STORE_ADMIN"),
+      OrderController.markAsRefunded
     );
   }
 }

@@ -11,6 +11,13 @@ class CartController {
       if (!userId) {
         return ApiResponse.error(res, "Unauthorized", 401);
       }
+      if (req.user?.role !== "CUSTOMER") {
+        return ApiResponse.error(
+          res,
+          "Forbidden: Admins cannot access the cart.",
+          403
+        );
+      }
 
       const cart = await prisma.cart.findUnique({
         where: { user_id: userId },
@@ -69,10 +76,25 @@ class CartController {
     if (!userId) {
       return ApiResponse.error(res, "Unauthorized", 401);
     }
+    if (req.user?.role !== "CUSTOMER") {
+      return ApiResponse.error(
+        res,
+        "Forbidden: Admins cannot add items to the cart.",
+        403
+      );
+    }
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
       return ApiResponse.error(res, "User not found", 404);
+    }
+
+    if (!user.is_verified) {
+      return ApiResponse.error(
+        res,
+        "Please verify your email to start shopping.",
+        403
+      );
     }
 
     if (!user.is_verified) {
@@ -131,7 +153,6 @@ class CartController {
       if (validItems.length === 0) {
         return ApiResponse.error(res, "No valid products in request", 400);
       }
-
 
       if (validItems.length > 0) {
         await tx.cartItem.createMany({

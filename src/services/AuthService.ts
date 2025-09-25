@@ -158,6 +158,7 @@ class AuthService {
       id: user.id,
       role: user.role,
       email: user.email,
+      store_id: user.store_id,
     });
 
     return { user, token };
