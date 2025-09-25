@@ -39,24 +39,6 @@ class UserController {
     }
   };
 
-  // DATA LAMA
-  // public static getAllCustomers = async (req: Request, res: Response) => {
-  //   try {
-  //     const customersData = await prisma.user.findMany({
-  //       where: { role: "CUSTOMER", store_id: null },
-  //       include: {
-  //         addresses: true,
-  //       },
-  //     });
-  //     return ApiResponse.success(
-  //       res,
-  //       customersData,
-  //       "Get All Customers Data Success"
-  //     );
-  //   } catch (error) {
-  //     ApiResponse.error(res, "Error get customers data", 400);
-  //   }
-  // };
   public static getAllCustomers = async (req: Request, res: Response) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
@@ -66,6 +48,7 @@ class UserController {
 
       const skip = (page - 1) * limit;
       const where: Prisma.UserWhereInput = {
+        is_deleted: false,
         role: "CUSTOMER",
         OR: [
           { first_name: { contains: search, mode: "insensitive" } },
@@ -108,7 +91,7 @@ class UserController {
   public static getAllStoreAdmin = async (req: Request, res: Response) => {
     try {
       const customersData = await prisma.user.findMany({
-        where: { role: "STORE_ADMIN", store_id: null },
+        where: { role: "STORE_ADMIN", store_id: null, is_deleted: false },
         include: {
           addresses: true,
         },
@@ -123,44 +106,31 @@ class UserController {
     }
   };
 
-  // public static assignMultipleAdmins = asyncHandler(
-  //   async (req: Request, res: Response) => {
-  //     const { store_id, adminIds } = req.body;
-
-  //     if (!store_id || !Array.isArray(adminIds) || adminIds.length === 0) {
-  //       return ApiResponse.error(res, "store_id dan adminIds wajib diisi", 400);
-  //     }
-
-  //     // pastikan store ada
-  //     const store = await prisma.store.findUnique({
-  //       where: { id: store_id },
-  //     });
-  //     if (!store) {
-  //       return ApiResponse.error(res, "Store tidak ditemukan", 404);
-  //     }
-
-  //     // update semua user sesuai adminIds
-  //     const updatedAdmins = await prisma.user.updateMany({
-  //       where: { id: { in: adminIds } },
-  //       data: {
-  //         store_id: store_id,
-  //         role: "STORE_ADMIN",
-  //       },
-  //     });
-
-  //     return ApiResponse.success(
-  //       res,
-  //       updatedAdmins,
-  //       `Berhasil assign ${updatedAdmins.count} admin ke store`
-  //     );
-  //   }
-  // );
-
-  public static deleteUserById = async (req: Request, res: Response) => {
+  public static softDeleteUserById = async (req: Request, res: Response) => {
     try {
+      //using soft delete methods
       const userId = req.params.id;
-      const deletedUser = await prisma.user.delete({ where: { id: userId! } });
-      return ApiResponse.success(res, `Delete user id ${userId} success`);
+      // cari data user id apakah ada di admin
+      // kalo ada, maka update store id menjadi null, dan data usernya menjadi is_deleted true
+
+      const findAdmin = await prisma.user.findUnique({
+        where: { id: userId!, role: "STORE_ADMIN" },
+      });
+      if (findAdmin) {
+        await prisma.user.update({
+          where: { id: userId! },
+          data: { is_deleted: true, store_id: null, role: "CUSTOMER" },
+        });
+      } else {
+        await prisma.user.update({
+          where: { id: userId! },
+          data: {
+            is_deleted: true,
+          },
+        });
+      }
+
+      return ApiResponse.success(res, `Soft Delete user id ${userId} success`);
     } catch (error) {
       ApiResponse.error(res, "Error delete data", 400);
     }

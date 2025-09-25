@@ -17,13 +17,13 @@ class StoreRoutes {
       authMiddleware(),
       authorizeRoles("SUPER_ADMIN"),
       StoreController.getAllStores
-    ); //get all stores - arco
+    );
     this.router.get(
       "/store-admins",
       authMiddleware(),
       authorizeRoles("SUPER_ADMIN"),
       StoreController.getAllStoreAdmin
-    ); //get all stores - arco
+    );
     this.router.post(
       "/",
       authMiddleware(),
@@ -36,24 +36,24 @@ class StoreRoutes {
       authorizeRoles("SUPER_ADMIN"),
       StoreController.postNewAdmin
     );
-    this.router.delete(
-      "/:id",
+    this.router.patch(
+      "/soft-delete/:id",
       authMiddleware(),
       authorizeRoles("SUPER_ADMIN"),
-      StoreController.deleteStoreById
-    ); // arco
+      StoreController.softDeleteStoreById
+    );
     this.router.patch(
       "/:id",
       authMiddleware(),
       authorizeRoles("SUPER_ADMIN"),
       StoreController.patchStoreById
-    ); // arco
+    );
     this.router.patch(
       "/relocate-admin/:id",
       authMiddleware(),
       authorizeRoles("SUPER_ADMIN"),
       StoreController.patchStoreAdminRelocation
-    ); //get all stores - arco
+    );
   }
 }
 

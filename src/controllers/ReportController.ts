@@ -14,6 +14,11 @@ class ReportController {
       const orderItems = await prisma.orderItem.groupBy({
         by: ["product_id"],
         where: {
+          order: {
+            orderStatus: {
+              status: "SHIPPED",
+            },
+          },
           created_at: {
             gte: startDate,
             lte: endDate,
@@ -82,6 +87,11 @@ class ReportController {
       const orderItems = await prisma.orderItem.groupBy({
         by: ["product_id"],
         where: {
+          order: {
+            orderStatus: {
+              status: "SHIPPED",
+            },
+          },
           created_at: { gte: startDate, lte: endDate },
           store_id: Number(storeId),
         },

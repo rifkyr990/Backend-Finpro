@@ -19,8 +19,6 @@ class OrderController {
         req.body;
       if (
         typeof addressId !== "number" ||
-        typeof storeId !== "number" ||
-        typeof shippingCost !== "string" ||
         typeof paymentMethodId !== "number"
       ) {
         return ApiResponse.error(

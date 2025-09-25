@@ -97,6 +97,14 @@ class CartController {
       );
     }
 
+    if (!user.is_verified) {
+      return ApiResponse.error(
+        res,
+        "Please verify your email to start shopping.",
+        403
+      );
+    }
+
     const { storeId, items } = req.body as {
       storeId: number;
       items: { productId: number; quantity: number }[];
@@ -145,7 +153,6 @@ class CartController {
       if (validItems.length === 0) {
         return ApiResponse.error(res, "No valid products in request", 400);
       }
-
 
       if (validItems.length > 0) {
         await tx.cartItem.createMany({
