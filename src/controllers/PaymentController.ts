@@ -4,6 +4,7 @@ import { AuthRequest } from "../middlewares/AuthMiddleware";
 import { ApiResponse } from "../utils/ApiResponse";
 import { asyncHandler } from "../utils/AsyncHandler";
 import crypto from "crypto";
+import EmailService from "../services/EmailService";
 const midtransClient = require("midtrans-client");
 
 const snap = new midtransClient.Snap({
