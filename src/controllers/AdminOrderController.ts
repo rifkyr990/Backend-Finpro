@@ -10,10 +10,11 @@ class AdminOrderController {
       if (!req.user) return ApiResponse.error(res, "Unauthorized", 401);
 
       try {
-        const result = await AdminOrderService.getAllAdminOrders({
-          user: req.user,
-          query: req.query,
-        });
+        // We can cast req.query here, but a validation middleware (e.g., with Zod) would be even better in a real app.
+        const result = await AdminOrderService.getAllAdminOrders(
+          req.user,
+          req.query
+        );
         return ApiResponse.success(
           res,
           result,
@@ -29,11 +30,15 @@ class AdminOrderController {
     async (req: AuthRequest, res: Response) => {
       if (!req.user) return ApiResponse.error(res, "Unauthorized", 401);
       const { orderId: orderIdParam } = req.params;
-      if (!orderIdParam)
+
+      if (!orderIdParam) {
         return ApiResponse.error(res, "Order ID is required", 400);
+      }
+
       const orderId = parseInt(orderIdParam, 10);
-      if (isNaN(orderId))
+      if (isNaN(orderId)) {
         return ApiResponse.error(res, "Invalid Order ID", 400);
+      }
 
       try {
         const result = await AdminOrderService.getAdminOrderDetail(
