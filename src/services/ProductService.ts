@@ -59,7 +59,7 @@ class ProductService {
 
     const allStores = await prisma.store.findMany();
 
-    const createStocksPromises = allStores.map((store) =>
+    const createStocksPromises = allStores.map((store:any) =>
       prisma.productStocks.create({
         data: {
           product_id: newProduct.id,

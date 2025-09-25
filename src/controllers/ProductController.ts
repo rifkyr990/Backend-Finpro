@@ -115,7 +115,7 @@ class ProductController {
           is_deleted: false,
           stocks: {
             some: {
-              store: { province, ...(city ? { city } : {}) },
+              store: { is_deleted: false, province, ...(city ? { city } : {}) },
             },
           },
         },
@@ -158,6 +158,7 @@ class ProductController {
             stocks: {
               some: {
                 store: {
+                  is_deleted: false,
                   province,
                 },
               },
