@@ -8,6 +8,7 @@ import RajaOngkirRoutes from "./routes/RajaOngkirRoutes";
 import { ApiResponse } from "./utils/ApiResponse";
 import CartRoutes from "./routes/CartRoutes";
 import OrderRoutes from "./routes/OrderRoutes";
+import AdminOrderRoutes from "./routes/AdminOrderRoutes";
 import ShippingRoutes from "./routes/ShippingRoutes";
 import StoreRoutes from "./routes/StoreRoutes";
 import ProductRoutes from "./routes/ProductRoutes";
@@ -48,6 +49,7 @@ class App {
     this.app.use("/api/address", UserAddressRoutes);
     this.app.use("/api/rajaongkir", RajaOngkirRoutes);
     this.app.use("/api/orders", OrderRoutes);
+    this.app.use("/api/admin/orders", AdminOrderRoutes);
     this.app.use("/api/shipping", ShippingRoutes);
     this.app.use("/api/payment", PaymentRoutes);
     this.app.use("/api/report", ReportRoutes);
