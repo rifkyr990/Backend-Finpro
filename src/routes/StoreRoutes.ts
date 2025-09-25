@@ -36,11 +36,11 @@ class StoreRoutes {
       authorizeRoles("SUPER_ADMIN"),
       StoreController.postNewAdmin
     );
-    this.router.delete(
+    this.router.patch(
       "/:id",
       authMiddleware(),
       authorizeRoles("SUPER_ADMIN"),
-      StoreController.deleteStoreById
+      StoreController.softDeleteStoreById
     ); // arco
     this.router.patch(
       "/:id",

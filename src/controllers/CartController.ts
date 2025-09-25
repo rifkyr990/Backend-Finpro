@@ -70,6 +70,19 @@ class CartController {
       return ApiResponse.error(res, "Unauthorized", 401);
     }
 
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      return ApiResponse.error(res, "User not found", 404);
+    }
+
+    if (!user.is_verified) {
+      return ApiResponse.error(
+        res,
+        "Please verify your email to start shopping.",
+        403
+      );
+    }
+
     const { storeId, items } = req.body as {
       storeId: number;
       items: { productId: number; quantity: number }[];

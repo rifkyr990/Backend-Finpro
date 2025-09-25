@@ -9,8 +9,15 @@ class StoreController {
   public static getAllStores = async (req: Request, res: Response) => {
     try {
       const storesData = await prisma.store.findMany({
+        where: {
+          is_deleted: false,
+        },
         include: {
-          admins: true,
+          admins: {
+            where: {
+              is_deleted: false,
+            },
+          },
         },
       });
       ApiResponse.success(res, storesData, "Get All Store Data Success!");
@@ -26,6 +33,7 @@ class StoreController {
         where: {
           store_id: null,
           role: "STORE_ADMIN",
+          is_deleted: false,
         },
         select: {
           id: true,
@@ -42,6 +50,9 @@ class StoreController {
           name: true,
           id: true,
           admins: {
+            where: {
+              is_deleted: false,
+            },
             select: {
               id: true,
               first_name: true,
@@ -100,7 +111,7 @@ class StoreController {
     }
   }; //arco
 
-  public static deleteStoreById = async (req: Request, res: Response) => {
+  public static softDeleteStoreById = async (req: Request, res: Response) => {
     try {
       const storeId = Number(req.params.id);
       const result = await prisma.$transaction(async (tx) => {
@@ -111,12 +122,15 @@ class StoreController {
             role: "STORE_ADMIN",
           },
           data: {
-            role: "CUSTOMER",
+            store_id: null,
           },
         });
-        // delete store id
-        await tx.store.delete({
+        // soft delete store id
+        await tx.store.update({
           where: { id: storeId },
+          data: {
+            is_deleted: true,
+          },
         });
       });
       ApiResponse.success(res, result, "Delete Data Success", 200);
@@ -156,9 +170,8 @@ class StoreController {
           // admins: {
           //   connect: adminIds.map(id => ({ id })),
           // }
-        }
+        },
       });
-
 
       // 2. Update admin agar terhubung ke store & ubah role ke STORE_ADMIN
       if (adminIds && adminIds.length > 0) {
@@ -201,23 +214,9 @@ class StoreController {
   };
 
   public static patchStoreById = async (req: Request, res: Response) => {
-  try {
-    const storeId = Number(req.params.id);
-    const {
-      name,
-      address,
-      city,
-      city_id,
-      province,
-      province_id,
-      latitude,
-      longitude,
-      is_active,
-    } = req.body.payload;
-
-    const updateStore = await prisma.store.update({
-      where: { id: storeId },
-      data: {
+    try {
+      const storeId = Number(req.params.id);
+      const {
         name,
         address,
         city,
@@ -227,19 +226,36 @@ class StoreController {
         latitude,
         longitude,
         is_active,
-      },
-    });
+      } = req.body.payload;
 
-    ApiResponse.success(
-      res,
-      updateStore,
-      "Update Store Details Success!",
-      200
-    );
-  } catch (error) {
-    ApiResponse.error(res, "Update Store Error", 400);
-  }
-};
+      const cityName = city.trim().toUpperCase();
+      const provinceName = province.trim().toUpperCase();
+
+      const updateStore = await prisma.store.update({
+        where: { id: storeId },
+        data: {
+          name,
+          address,
+          city: cityName,
+          city_id,
+          province: provinceName,
+          province_id,
+          latitude,
+          longitude,
+          is_active,
+        },
+      });
+
+      ApiResponse.success(
+        res,
+        updateStore,
+        "Update Store Details Success!",
+        200
+      );
+    } catch (error) {
+      ApiResponse.error(res, "Update Store Error", 400);
+    }
+  };
 
   public static patchStoreAdminRelocation = async (
     req: Request,

@@ -16,7 +16,7 @@ class ReportController {
         where: {
           order: {
             orderStatus: {
-              status: "PAID",
+              status: "SHIPPED",
             },
           },
           created_at: {
@@ -89,7 +89,7 @@ class ReportController {
         where: {
           order: {
             orderStatus: {
-              status: "PAID",
+              status: "SHIPPED",
             },
           },
           created_at: { gte: startDate, lte: endDate },

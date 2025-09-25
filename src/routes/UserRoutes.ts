@@ -31,11 +31,11 @@ class UserRoutes {
       authorizeRoles("SUPER_ADMIN"),
       UserController.getAllStoreAdmin
     );
-    this.router.delete(
+    this.router.patch(
       "/:id",
       authMiddleware(),
       authorizeRoles("SUPER_ADMIN"),
-      UserController.deleteUserById
+      UserController.softDeleteUserById
     );
     this.router.patch(
       "/new-admin/:id",

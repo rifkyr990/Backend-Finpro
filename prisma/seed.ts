@@ -413,6 +413,14 @@ async function main() {
         freeQty = 1;
         break;
     }
+    const adminUser = await prisma.user.findFirst({
+      where: { role: "STORE_ADMIN" },
+      select: { id: true },
+    });
+
+    if (!adminUser) {
+      throw new Error("No admin user found for discount seeding");
+    }
 
     const discount = await prisma.discount.create({
       data: {
@@ -429,6 +437,7 @@ async function main() {
         discAmount,
         start_date: faker.date.recent({ days: 10 }),
         end_date: faker.date.anytime(),
+        createdBy: adminUser.id,
       },
     });
 

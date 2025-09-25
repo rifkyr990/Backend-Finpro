@@ -90,6 +90,7 @@ model User {
   store_id                         Int? 
   created_at               DateTime             @default(now())
   updated_at               DateTime             @updatedAt
+  is_deleted    Boolean @default(false)
   
   socialLogins             SocialLogin[]
   verificationTokens       VerificationToken[]
@@ -102,6 +103,7 @@ model User {
   history StockHistory[]
   archived_stock_history ArchivedStockHistory[]
   discountUsage            DiscountUsage[]
+  discounts Discount[] 
   referrals                Referral[]
   referralUsagesAsReferrer ReferralUsage[]      @relation("Referrer")
   referralUsagesAsReferee  ReferralUsage[]      @relation("Referee")
@@ -185,6 +187,7 @@ model Store {
   is_main_store Boolean  @default(false)
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
+  is_deleted Boolean @default(false)
 
   admins   User[]
   orders   Order[]
@@ -390,9 +393,11 @@ model Discount {
   end_date DateTime
   is_deleted Boolean @default(false)
   createdAt        DateTime     @default(now())
+  createdBy  String
 
-  product Product?        @relation(fields: [product_id], references: [id])
-  store   Store?          @relation(fields: [store_id], references: [id])
+  creator User @relation(fields: [createdBy],references: [id], onDelete: Cascade)
+  product Product?        @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  store   Store?          @relation(fields: [store_id], references: [id], onDelete: Cascade)
   usage  DiscountUsage[]
 }
 model DiscountUsage {

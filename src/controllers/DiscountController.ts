@@ -24,6 +24,12 @@ class DiscountController {
           discAmount: true,
           start_date: true,
           end_date: true,
+          creator: {
+            select: {
+              first_name: true,
+              last_name: true,
+            },
+          },
           product: {
             select: {
               name: true,
@@ -85,7 +91,19 @@ class DiscountController {
         valueType,
         start_date,
         end_date,
+        user_id,
       } = req.body.data;
+
+      const findCreator = await prisma.user.findUnique({
+        where: {
+          id: user_id,
+        },
+        select: {
+          first_name: true,
+          last_name: true,
+        },
+      });
+      const fullNameCreator = `${findCreator?.first_name} ${findCreator?.last_name}`;
 
       const createDiscount = await prisma.discount.create({
         data: {
@@ -101,6 +119,7 @@ class DiscountController {
           valueType,
           start_date,
           end_date,
+          createdBy: user_id,
         },
       });
       ApiResponse.success(res, createDiscount, "Create Discount Success!", 200);
