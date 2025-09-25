@@ -10,7 +10,6 @@ class AdminOrderController {
       if (!req.user) return ApiResponse.error(res, "Unauthorized", 401);
 
       try {
-        // We can cast req.query here, but a validation middleware (e.g., with Zod) would be even better in a real app.
         const result = await AdminOrderService.getAllAdminOrders(
           req.user,
           req.query
