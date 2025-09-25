@@ -28,6 +28,9 @@ CREATE TYPE "public"."DiscountUsageStatus" AS ENUM ('APPLIED', 'CANCELLED');
 -- CreateEnum
 CREATE TYPE "public"."ValueType" AS ENUM ('NOMINAL', 'PERCENTAGE');
 
+-- CreateEnum
+CREATE TYPE "public"."ApprovalStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED');
+
 -- CreateTable
 CREATE TABLE "public"."User" (
     "id" TEXT NOT NULL,
@@ -43,6 +46,7 @@ CREATE TABLE "public"."User" (
     "store_id" INTEGER,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
+    "is_deleted" BOOLEAN NOT NULL DEFAULT false,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
@@ -120,6 +124,7 @@ CREATE TABLE "public"."Store" (
     "name" TEXT NOT NULL,
     "address" TEXT,
     "province" TEXT,
+    "province_id" TEXT,
     "city" TEXT,
     "city_id" TEXT,
     "latitude" DOUBLE PRECISION,
@@ -182,6 +187,7 @@ CREATE TABLE "public"."StockHistory" (
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "productStockId" INTEGER NOT NULL,
     "user_id" TEXT,
+    "created_by_name" TEXT NOT NULL DEFAULT 'No Name',
 
     CONSTRAINT "StockHistory_pkey" PRIMARY KEY ("id")
 );
@@ -320,6 +326,7 @@ CREATE TABLE "public"."Discount" (
     "end_date" TIMESTAMP(3) NOT NULL,
     "is_deleted" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdBy" TEXT NOT NULL,
 
     CONSTRAINT "Discount_pkey" PRIMARY KEY ("id")
 );
@@ -358,6 +365,21 @@ CREATE TABLE "public"."ReferralUsage" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "ReferralUsage_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."ApprovalRequest" (
+    "id" SERIAL NOT NULL,
+    "actionType" TEXT NOT NULL,
+    "status" "public"."ApprovalStatus" NOT NULL DEFAULT 'PENDING',
+    "payload" JSONB NOT NULL,
+    "notes" TEXT,
+    "requesterId" TEXT NOT NULL,
+    "approverId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ApprovalRequest_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -472,10 +494,13 @@ ALTER TABLE "public"."Payment" ADD CONSTRAINT "Payment_payment_method_id_fkey" F
 ALTER TABLE "public"."PaymentProof" ADD CONSTRAINT "PaymentProof_payment_id_fkey" FOREIGN KEY ("payment_id") REFERENCES "public"."Payment"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."Discount" ADD CONSTRAINT "Discount_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "public"."Product"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "public"."Discount" ADD CONSTRAINT "Discount_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "public"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."Discount" ADD CONSTRAINT "Discount_store_id_fkey" FOREIGN KEY ("store_id") REFERENCES "public"."Store"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "public"."Discount" ADD CONSTRAINT "Discount_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "public"."Product"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."Discount" ADD CONSTRAINT "Discount_store_id_fkey" FOREIGN KEY ("store_id") REFERENCES "public"."Store"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."DiscountUsage" ADD CONSTRAINT "DiscountUsage_discount_id_fkey" FOREIGN KEY ("discount_id") REFERENCES "public"."Discount"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -494,3 +519,9 @@ ALTER TABLE "public"."ReferralUsage" ADD CONSTRAINT "ReferralUsage_referrer_id_f
 
 -- AddForeignKey
 ALTER TABLE "public"."ReferralUsage" ADD CONSTRAINT "ReferralUsage_referee_id_fkey" FOREIGN KEY ("referee_id") REFERENCES "public"."User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."ApprovalRequest" ADD CONSTRAINT "ApprovalRequest_requesterId_fkey" FOREIGN KEY ("requesterId") REFERENCES "public"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."ApprovalRequest" ADD CONSTRAINT "ApprovalRequest_approverId_fkey" FOREIGN KEY ("approverId") REFERENCES "public"."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

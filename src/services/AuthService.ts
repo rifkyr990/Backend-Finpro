@@ -84,7 +84,11 @@ class AuthService {
   }
 
   // Internal reusable method untuk kirim email verifikasi
-  private async _sendVerificationEmail(userId: string, email: string, path: string) {
+  private async _sendVerificationEmail(
+    userId: string,
+    email: string,
+    path: string
+  ) {
     await prisma.verificationToken.deleteMany({
       where: {
         user_id: userId,
@@ -120,7 +124,11 @@ class AuthService {
     if (!user) throw new Error("User tidak ditemukan");
     if (user.is_verified) throw new Error("Akun sudah terverifikasi");
 
-    await this._sendVerificationEmail(user.id, user.email, "/auth/verify-new-email");
+    await this._sendVerificationEmail(
+      user.id,
+      user.email,
+      "/auth/verify-new-email"
+    );
 
     return { message: "Email verifikasi berhasil dikirim ulang" };
   }
@@ -141,7 +149,6 @@ class AuthService {
       where: { email },
       include: { store: { select: { name: true } } },
     });
-
     if (!user || !user.password) throw new Error("Email atau password salah");
 
     const isValid = await comparePassword(password, user.password);
@@ -151,6 +158,7 @@ class AuthService {
       id: user.id,
       role: user.role,
       email: user.email,
+      store_id: user.store_id,
     });
 
     return { user, token };

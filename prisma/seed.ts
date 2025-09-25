@@ -1,16 +1,15 @@
 import { faker } from "@faker-js/faker";
-import { hashPassword } from "../src/utils/bcrypt";
 import {
-  PrismaClient,
-  Role,
   OrderStatus,
-  User,
   Prisma,
-  Store,
-  ProductCategory,
+  PrismaClient,
   Product,
-  ValueType,
+  ProductCategory,
+  Role,
+  Store,
+  User,
 } from "@prisma/client";
+import { hashPassword } from "../src/utils/bcrypt";
 
 const prisma = new PrismaClient();
 
@@ -53,7 +52,9 @@ async function main() {
         name: faker.person.fullName(),
         phone: faker.phone.number(),
         label: faker.helpers.arrayElement(["RUMAH", "KANTOR"]),
+        province_id: faker.string.numeric(2), // Example: "11"
         province: faker.location.state(),
+        city_id: faker.string.numeric(3), // Example: "1101"
         city: faker.location.city(),
         district: faker.location.county(),
         postal_code: faker.location.zipCode(),
@@ -64,7 +65,7 @@ async function main() {
       });
     }
 
-    const hashedPassword = await hashPassword("testpassword");
+    const hashedPassword = await hashPassword("Admin@123");
 
     const createdUser = await prisma.user.create({
       data: {
@@ -89,7 +90,9 @@ async function main() {
         name: faker.company.name(),
         address: faker.location.streetAddress(),
         province: faker.location.state(),
+        province_id: faker.string.numeric(2),
         city: faker.location.city(),
+        city_id: faker.string.numeric(4),
         latitude: faker.location.latitude(),
         longitude: faker.location.longitude(),
         is_active: faker.datatype.boolean(),
@@ -112,7 +115,17 @@ async function main() {
   }
 
   console.log("Seeding Product Categories...");
-  const categories = ["Groceries", "Electronics", "Fashion", "Sports"];
+  const categories = [
+    "Fruits",
+    "Vegetables",
+    "Dairy & Eggs",
+    "Meat & Poultry",
+    "Bakery",
+    "Beverages",
+    "Snacks",
+    "Pantry Staples",
+    "Frozen Foods",
+  ];
   const createdCategories: ProductCategory[] = [];
   for (const categoryName of categories) {
     const category = await prisma.productCategory.create({
@@ -121,32 +134,91 @@ async function main() {
     createdCategories.push(category);
   }
 
+  // Grocery Products
+  const groceryProducts = {
+    Fruits: ["Apple", "Banana", "Orange", "Grapes", "Strawberry", "Mango"],
+    Vegetables: [
+      "Carrot",
+      "Broccoli",
+      "Spinach",
+      "Potato",
+      "Tomato",
+      "Cucumber",
+    ],
+    "Dairy & Eggs": ["Milk", "Cheese", "Yogurt", "Butter", "Eggs"],
+    "Meat & Poultry": [
+      "Chicken Breast",
+      "Ground Beef",
+      "Sausage",
+      "Bacon",
+      "Salmon Fillet",
+    ],
+    Bakery: ["White Bread", "Croissant", "Baguette", "Donuts", "Muffins"],
+    Beverages: [
+      "Mineral Water",
+      "Orange Juice",
+      "Cola",
+      "Iced Tea",
+      "Coffee Beans",
+    ],
+    Snacks: ["Potato Chips", "Chocolate Bar", "Cookies", "Popcorn", "Pretzels"],
+    "Pantry Staples": [
+      "Rice",
+      "Pasta",
+      "All-Purpose Flour",
+      "Sugar",
+      "Olive Oil",
+      "Salt",
+    ],
+    "Frozen Foods": [
+      "Frozen Pizza",
+      "Ice Cream",
+      "Frozen Peas",
+      "Chicken Nuggets",
+    ],
+  };
+
   console.log("Seeding Products and Stocks...");
   const createdProducts: Product[] = [];
 
-  for (let i = 0; i < 7; i++) {
-    const randomCategory = faker.helpers.arrayElement(createdCategories);
-    const name = faker.commerce.productName() + " - " + i;
+  for (let i = 0; i < 10; i++) {
+    // const randomCategory = faker.helpers.arrayElement(createdCategories);
+    const randomCategoryName = faker.helpers.arrayElement(
+      Object.keys(groceryProducts)
+    );
+    const randomProductName = faker.helpers.arrayElement(
+      Object.keys(groceryProducts)
+    ) as keyof typeof groceryProducts;
+    const categoryObject = createdCategories.find(
+      (c) => c.category === randomCategoryName
+    );
+    if (!categoryObject) continue;
+
+    // const name = faker.commerce.productName() + " - " + i;
     const product = await prisma.product.create({
       data: {
-        name,
-        description: faker.commerce.productDescription(),
+        name: randomProductName + "- " + i,
+        description: `A fresh selection of ${randomProductName} from our ${randomCategoryName}`,
         price: faker.commerce.price({
           min: 10000,
           max: 200000,
         }),
         is_active: faker.datatype.boolean(),
         is_deleted: false,
-        category_id: randomCategory.id,
+        category_id: categoryObject.id ?? undefined,
       },
     });
     createdProducts.push(product);
-    const imageCount = faker.number.int({ min: 2, max: 4 });
+    const imageCount = faker.number.int({ min: 1, max: 4 });
     for (let i = 0; i < imageCount; i++) {
       await prisma.productImage.create({
         data: {
           product_id: product.id,
-          image_url: faker.image.urlPicsumPhotos({ width: 800, height: 400 }),
+          image_url: faker.image.urlLoremFlickr({
+            category: ` ${randomCategoryName.toLowerCase()},food,grocery`,
+            width: 640,
+            height: 480,
+          }),
         },
       });
     }
@@ -192,92 +264,6 @@ async function main() {
     update: {},
     create: { id: 2, name: "Payment Gateway", type: "GATEWAY" },
   });
-
-  // const bread = await prisma.product.upsert({
-  //   where: { id: 3 },
-  //   update: {},
-  //   create: {
-  //     id: 3,
-  //     name: "Whole Wheat Bread",
-  //     description: "400g loaf, soft and fresh-baked",
-  //     price: 28000,
-  //   },
-  // });
-  // await prisma.productImage.upsert({
-  //   where: { id: 3 },
-  //   update: {},
-  //   create: {
-  //     id: 3,
-  //     product_id: bread.id,
-  //     image_url:
-  //       "https://images.unsplash.com/photo-1608198093002-ad4e005484b7?w=500&q=80",
-  //   },
-  // });
-
-  // --- PRODUCT STOCK SEEDING ---
-  // const storeCount = faker.number.int({ min: 1, max: stores.length });
-  // const selectedStores = faker.helpers.arrayElements(stores, storeCount);
-
-  // for (const product of createdProducts) {
-  //   for (const store of selectedStores) {
-  //     await prisma.productStocks.create({
-  //       data: {
-  //         store_id: store.id,
-  //         product_id: product.id,
-  //         stock_quantity: faker.number.int({ min: 0, max: 100 }),
-  //       },
-  //     });
-  //   }
-  // }
-
-  // await prisma.productStocks.upsert({
-  //   where: {
-  //     store_id_product_id: { store_id: storeJakarta.id, product_id: apple.id },
-  //   },
-  //   update: {},
-  //   create: {
-  //     store_id: storeJakarta.id,
-  //     product_id: apple.id,
-  //     stock_quantity: 100,
-  //   },
-  // });
-  // await prisma.productStocks.upsert({
-  //   where: {
-  //     store_id_product_id: {
-  //       store_id: storeJakarta.id,
-  //       product_id: almondMilk.id,
-  //     },
-  //   },
-  //   update: {},
-  //   create: {
-  //     store_id: storeJakarta.id,
-  //     product_id: almondMilk.id,
-  //     stock_quantity: 50,
-  //   },
-  // });
-  // await prisma.productStocks.upsert({
-  //   where: {
-  //     store_id_product_id: { store_id: storeSurabaya.id, product_id: apple.id },
-  //   },
-  //   update: {},
-  //   create: {
-  //     store_id: storeSurabaya.id,
-  //     product_id: apple.id,
-  //     stock_quantity: 80,
-  //   },
-  // });
-  // await prisma.productStocks.upsert({
-  //   where: {
-  //     store_id_product_id: { store_id: storeSurabaya.id, product_id: bread.id },
-  //   },
-  //   update: {},
-  //   create: {
-  //     store_id: storeSurabaya.id,
-  //     product_id: bread.id,
-  //     stock_quantity: 40,
-  //   },
-  // });
-
   // --- ORDER STATUSES SEEDING  ---
   console.log("Seeding Order Statuses . . .");
   await Promise.all(
@@ -290,71 +276,6 @@ async function main() {
     )
   );
   const orderStatuses = await prisma.orderStatuses.findMany();
-  // await Promise.all(
-  //   Object.values(OrderStatus).map((status) =>
-  //     prisma.orderStatuses.upsert({
-  //       where: { status },
-  //       update: {},
-  //       create: { status },
-  //     })
-  //   )
-  // );
-
-  // --- CART SEEDING ---
-  // console.log("Seeding cart for default customer...");
-  // const customer = customers.find(
-  //   (customer) => customer.role === Role.CUSTOMER
-  // );
-
-  // if (customer) {
-  //   // customer cart
-  //   const customerCart = await prisma.cart.upsert({
-  //     where: { user_id: customer.id },
-  //     update: {},
-  //     create: {
-  //       user_id: customer.id,
-  //       store_id: storeJakarta.id,
-  //     },
-  //   });
-  //   //
-  //   await prisma.cartItem.upsert({
-  //     where: {
-  //       cart_id_product_id: { cart_id: customerCart.id, product_id: apple.id },
-  //     },
-  //     update: { quantity: 2 },
-  //     create: {
-  //       cart_id: customerCart.id,
-  //       product_id: apple.id,
-  //       quantity: 2,
-  //     },
-  //   });
-  //   //
-  //   await prisma.cartItem.upsert({
-  //     where: {
-  //       cart_id_product_id: {
-  //         cart_id: customerCart.id,
-  //         product_id: almondMilk.id,
-  //       },
-  //     },
-  //     update: { quantity: 1 },
-  //     create: {
-  //       cart_id: customerCart.id,
-  //       product_id: almondMilk.id,
-  //       quantity: 1,
-  //     },
-  //   });
-  //   //
-  //   const totalQuantity = 2 + 1;
-  //   const totalPrice = Number(apple.price) * 2 + Number(almondMilk.price) * 1;
-
-  //   await prisma.cart.update({
-  //     where: { id: customerCart.id },
-  //     data: {
-  //       total_quantity: totalQuantity,
-  //       total_price: totalPrice,
-  //     },
-  //   });
-  // }
 
   // DISCOUNT SEEDING
   console.log("Seeding Discount. . .");
@@ -411,6 +332,14 @@ async function main() {
         freeQty = 1;
         break;
     }
+    const adminUser = await prisma.user.findFirst({
+      where: { role: "STORE_ADMIN" },
+      select: { id: true },
+    });
+
+    if (!adminUser) {
+      throw new Error("No admin user found for discount seeding");
+    }
 
     const discount = await prisma.discount.create({
       data: {
@@ -427,6 +356,7 @@ async function main() {
         discAmount,
         start_date: faker.date.recent({ days: 10 }),
         end_date: faker.date.anytime(),
+        createdBy: adminUser.id,
       },
     });
 
@@ -494,6 +424,7 @@ async function main() {
       },
     });
   }
+
   console.log("Seeding completed!");
 }
 main()

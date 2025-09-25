@@ -2,6 +2,7 @@ import { Response } from "express";
 import prisma from "../config/prisma";
 import { AuthRequest } from "../middlewares/AuthMiddleware";
 import cloudinary from "../config/cloudinary";
+import EmailService from "../services/EmailService";
 import { ApiResponse } from "../utils/ApiResponse";
 import { asyncHandler } from "../utils/AsyncHandler";
 import { Discount, OrderStatus, Prisma } from "@prisma/client";
@@ -14,7 +15,8 @@ class OrderController {
         return ApiResponse.error(res, "Unauthorized", 401);
       }
 
-      const { addressId, shippingCost, paymentMethodId, promoCode } = req.body;
+      const { addressId, storeId, shippingCost, paymentMethodId, promoCode } =
+        req.body;
 
       if (
         typeof addressId !== "number" ||
@@ -96,48 +98,45 @@ class OrderController {
             if (meetsMinPurchase) {
               finalAppliedDiscount = foundDiscount;
 
-              switch (finalAppliedDiscount.type) {
-                case "MANUAL":
-                case "MIN_PURCHASE":
-                  if (finalAppliedDiscount.discAmount) {
-                    if (finalAppliedDiscount.valueType === "PERCENTAGE") {
-                      productDiscount =
-                        (subtotal * Number(finalAppliedDiscount.discAmount)) /
-                        100;
-                    } else {
-                      productDiscount = Number(finalAppliedDiscount.discAmount);
-                    }
-                  }
-                  break;
+              // Security check: ensure product-specific discounts are valid for the cart
+              if (
+                (finalAppliedDiscount.type === "MANUAL" ||
+                  finalAppliedDiscount.type === "B1G1") &&
+                finalAppliedDiscount.product_id
+              ) {
+                const requiredItemInCart = userCart.cartItems.find(
+                  (item) => item.product_id === finalAppliedDiscount!.product_id
+                );
+                if (!requiredItemInCart) {
+                  throw new Error(
+                    "Promo code is not valid for the items in your cart."
+                  );
+                }
+              }
 
-                case "B1G1":
-                  if (
-                    finalAppliedDiscount.product_id &&
-                    finalAppliedDiscount.minQty &&
-                    finalAppliedDiscount.freeQty
-                  ) {
-                    const targetItem = userCart.cartItems.find(
-                      (item) =>
-                        item.product_id === finalAppliedDiscount!.product_id
-                    );
-                    if (
-                      targetItem &&
-                      targetItem.quantity >= finalAppliedDiscount.minQty
-                    ) {
-                      const timesToApply = Math.floor(
-                        targetItem.quantity / finalAppliedDiscount.minQty
-                      );
-                      const freeItemsCount =
-                        timesToApply * finalAppliedDiscount.freeQty;
-                      productDiscount =
-                        Number(targetItem.product.price) * freeItemsCount;
-                    }
+              if (finalAppliedDiscount.type === "FREE_ONGKIR") {
+                shippingDiscount = shippingCostNum;
+              } else if (finalAppliedDiscount.type === "B1G1") {
+                if (finalAppliedDiscount.product_id) {
+                  const targetItem = userCart.cartItems.find(
+                    (item) =>
+                      item.product_id === finalAppliedDiscount!.product_id
+                  );
+                  if (targetItem && targetItem.quantity >= 1) {
+                    productDiscount = Number(targetItem.product.price);
                   }
-                  break;
-
-                case "FREE_ONGKIR":
-                  shippingDiscount = shippingCostNum;
-                  break;
+                }
+              } else if (
+                (finalAppliedDiscount.type === "MANUAL" ||
+                  finalAppliedDiscount.type === "MIN_PURCHASE") &&
+                finalAppliedDiscount.discAmount
+              ) {
+                if (finalAppliedDiscount.valueType === "PERCENTAGE") {
+                  productDiscount =
+                    (subtotal * Number(finalAppliedDiscount.discAmount)) / 100;
+                } else {
+                  productDiscount = Number(finalAppliedDiscount.discAmount);
+                }
               }
             } else {
               console.warn(
@@ -188,7 +187,7 @@ class OrderController {
             latitude: userAddress.latitude,
             longitude: userAddress.longitude,
             total_price: totalPrice,
-            order_status_id: 1,
+            order_status_id: 1, // Assumes 1 = PENDING_PAYMENT
           },
         });
 
@@ -201,7 +200,6 @@ class OrderController {
             price_at_purchase: item.product.price,
           })),
         });
-
 
         await tx.payment.create({
           data: {
@@ -251,6 +249,7 @@ class OrderController {
               order_id: order.id,
               productStockId: productStock.id,
               user_id: userId,
+              created_by_name: "System",
             },
           });
         }
@@ -283,7 +282,7 @@ class OrderController {
       const { orderId: orderIdParam } = req.params;
 
       if (!orderIdParam)
-        return ApiResponse.error(res, "Order ID is required in the URL", 400);
+        return ApiResponse.error(res, "Order ID is required", 400);
 
       const orderId = parseInt(orderIdParam, 10);
       if (isNaN(orderId)) {
@@ -615,6 +614,7 @@ class OrderController {
     async (req: AuthRequest, res: Response) => {
       const userId = req.user?.id;
       const { orderId: orderIdParam } = req.params;
+      const { notifyUser } = req.body;
 
       if (!orderIdParam)
         return ApiResponse.error(res, "Order ID is required", 400);
@@ -634,10 +634,11 @@ class OrderController {
           include: {
             orderStatus: true,
             orderItems: true,
+            user: true,
           },
         });
 
-        if (!order) {
+        if (!order || !order.user) {
           throw new Error(
             "Order not found or you do not have permission to modify it."
           );
@@ -684,9 +685,21 @@ class OrderController {
               order_id: order.id,
               productStockId: productStock.id,
               user_id: userId,
+              created_by_name: "System",
             },
           });
         }
+
+        // Release the promo code
+        await tx.discountUsage.updateMany({
+          where: { order_id: orderId, status: "APPLIED" },
+          data: { status: "CANCELLED" },
+        });
+
+        await EmailService.sendAdminOrderCancelledEmail(
+          order.user,
+          order as any
+        );
       });
 
       return ApiResponse.success(res, null, "Order successfully cancelled.");
@@ -1013,19 +1026,47 @@ class OrderController {
         return ApiResponse.error(res, "Order ID is required", 400);
 
       const orderId = parseInt(orderIdParam, 10);
-      const order = await prisma.order.findUnique({ where: { id: orderId } });
 
-      if (!order) throw new Error("Order not found.");
-      if (order.order_status_id !== 2)
-        throw new Error("Order is not awaiting payment confirmation.");
+      await prisma.$transaction(async (tx) => {
+        const order = await tx.order.findUnique({
+          where: { id: orderId },
+          include: { payments: true, user: true },
+        });
 
-      const processingStatus = await prisma.orderStatuses.findUniqueOrThrow({
-        where: { status: "PROCESSING" },
-      });
+        if (!order || !order.user) {
+          throw new Error("Order not found or user data is missing.");
+        }
+        if (order.order_status_id !== 2) {
+          // Status should be PAID (awaiting confirmation)
+          throw new Error("Order is not awaiting payment confirmation.");
+        }
 
-      await prisma.order.update({
-        where: { id: orderId },
-        data: { order_status_id: processingStatus.id },
+        const paymentToConfirm = order.payments.find(
+          (p) => p.status === "PENDING"
+        );
+        if (!paymentToConfirm) {
+          throw new Error(
+            "No pending payment record found for this order to confirm."
+          );
+        }
+
+        const processingStatus = await tx.orderStatuses.findUniqueOrThrow({
+          where: { status: "PROCESSING" },
+        });
+
+        // 1. Update Order Status
+        await tx.order.update({
+          where: { id: orderId },
+          data: { order_status_id: processingStatus.id },
+        });
+
+        // 2. Update Payment Status
+        await tx.payment.update({
+          where: { id: paymentToConfirm.id },
+          data: { status: "SUCCESS", paid_at: new Date() },
+        });
+
+        await EmailService.sendPaymentConfirmedEmail(order.user, order);
       });
 
       return ApiResponse.success(
@@ -1044,9 +1085,13 @@ class OrderController {
         return ApiResponse.error(res, "Order ID is required", 400);
 
       const orderId = parseInt(orderIdParam, 10);
-      const order = await prisma.order.findUnique({ where: { id: orderId } });
+      const order = await prisma.order.findUnique({
+        where: { id: orderId },
+        include: { user: true },
+      });
 
-      if (!order) throw new Error("Order not found.");
+      if (!order || !order.user)
+        throw new Error("Order not found or user data is missing.");
       if (order.order_status_id !== 2)
         throw new Error("Order is not awaiting payment confirmation.");
 
@@ -1064,6 +1109,8 @@ class OrderController {
         where: { payment: { order_id: orderId } },
       });
 
+      await EmailService.sendPaymentRejectedEmail(order.user, order);
+
       return ApiResponse.success(
         res,
         null,
@@ -1080,9 +1127,13 @@ class OrderController {
         return ApiResponse.error(res, "Order ID is required", 400);
 
       const orderId = parseInt(orderIdParam, 10);
-      const order = await prisma.order.findUnique({ where: { id: orderId } });
+      const order = await prisma.order.findUnique({
+        where: { id: orderId },
+        include: { user: true },
+      });
 
-      if (!order) throw new Error("Order not found.");
+      if (!order || !order.user)
+        throw new Error("Order not found or user data is missing.");
       if (order.order_status_id !== 3)
         throw new Error("Order is not in processing status.");
 
@@ -1095,6 +1146,8 @@ class OrderController {
         data: { order_status_id: shippedStatus.id },
       });
 
+      await EmailService.sendOrderShippedEmail(order.user, order);
+
       return ApiResponse.success(res, null, "Order marked as shipped.");
     }
   );
@@ -1102,19 +1155,25 @@ class OrderController {
   public static adminCancelOrder = asyncHandler(
     async (req: AuthRequest, res: Response) => {
       const { orderId: orderIdParam } = req.params;
+      const adminId = req.user?.id;
 
       if (!orderIdParam)
         return ApiResponse.error(res, "Order ID is required", 400);
 
       const orderId = parseInt(orderIdParam, 10);
+      if (!adminId) return ApiResponse.error(res, "Unauthorized", 401);
 
       await prisma.$transaction(async (tx) => {
-        const order = await tx.order.findUnique({
-          where: { id: orderId },
-          include: { orderStatus: true, orderItems: true },
-        });
+        const [order, admin] = await Promise.all([
+          tx.order.findUnique({
+            where: { id: orderId },
+            include: { orderStatus: true, orderItems: true, user: true },
+          }),
+          tx.user.findUnique({ where: { id: adminId } }),
+        ]);
 
-        if (!order) throw new Error("Order not found.");
+        if (!order || !admin || !order.user)
+          throw new Error("Order, Admin, or User data is missing.");
 
         const cancellableStatuses: OrderStatus[] = ["PAID", "PROCESSING"];
         if (!cancellableStatuses.includes(order.orderStatus.status)) {
@@ -1156,15 +1215,129 @@ class OrderController {
               reason: `Order #${order.id} cancelled by admin`,
               order_id: order.id,
               productStockId: productStock.id,
+              user_id: adminId,
+              created_by_name: `${admin.first_name} ${admin.last_name}`,
             },
           });
         }
+
+        // Release the promo code
+        await tx.discountUsage.updateMany({
+          where: { order_id: orderId, status: "APPLIED" },
+          data: { status: "CANCELLED" },
+        });
+
+        // Send a confirmation email to the user automatically
+        await EmailService.sendUserOrderCancelledEmail(
+          order.user,
+          order as any
+        );
       });
 
       return ApiResponse.success(
         res,
         null,
         "Order successfully cancelled by admin."
+      );
+    }
+  );
+
+  public static markAsRefunded = asyncHandler(
+    async (req: AuthRequest, res: Response) => {
+      const { orderId: orderIdParam } = req.params;
+      if (!orderIdParam)
+        return ApiResponse.error(res, "Order ID is required", 400);
+
+      const orderId = parseInt(orderIdParam, 10);
+
+      await prisma.$transaction(async (tx) => {
+        const order = await tx.order.findFirst({
+          where: {
+            id: orderId,
+            orderStatus: { status: "CANCELLED" },
+            payments: { some: { status: "SUCCESS" } },
+          },
+          include: { payments: true },
+        });
+
+        if (!order) {
+          throw new Error(
+            "Order not found, is not cancelled, or was not successfully paid for."
+          );
+        }
+
+        const paymentToRefund = order.payments.find(
+          (p) => p.status === "SUCCESS"
+        );
+        if (!paymentToRefund) {
+          throw new Error(
+            "Could not find a successful payment record to refund."
+          );
+        }
+
+        const refundedStatus = await tx.orderStatuses.findUniqueOrThrow({
+          where: { status: "REFUNDED" },
+        });
+
+        await tx.order.update({
+          where: { id: orderId },
+          data: { order_status_id: refundedStatus.id },
+        });
+
+        await tx.payment.update({
+          where: { id: paymentToRefund.id },
+          data: { status: "REFUNDED" },
+        });
+      });
+
+      return ApiResponse.success(
+        res,
+        null,
+        "Order successfully marked as refunded."
+      );
+    }
+  );
+
+  public static getOrderSummary = asyncHandler(
+    async (req: AuthRequest, res: Response) => {
+      const userRole = req.user?.role;
+      const userStoreId = req.user?.store_id;
+
+      const whereClause: Prisma.OrderWhereInput = {};
+
+      if (userRole === "STORE_ADMIN") {
+        if (!userStoreId) {
+          return ApiResponse.error(res, "Admin not assigned to a store.", 403);
+        }
+        whereClause.store_id = userStoreId;
+      }
+
+      const summaryData = await prisma.order.groupBy({
+        by: ["order_status_id"],
+        _count: {
+          id: true,
+        },
+        where: whereClause,
+      });
+
+      const statuses = await prisma.orderStatuses.findMany({
+        select: { id: true, status: true },
+      });
+
+      const statusMap = new Map(statuses.map((s) => [s.id, s.status]));
+
+      const formattedSummary = summaryData.reduce((acc, curr) => {
+        const statusName = statusMap.get(curr.order_status_id);
+        if (statusName) {
+          acc[statusName] = curr._count.id;
+        }
+        return acc;
+      }, {} as Record<string, number>);
+
+      return ApiResponse.success(
+        res,
+        formattedSummary,
+        "Order summary fetched successfully."
       );
     }
   );
