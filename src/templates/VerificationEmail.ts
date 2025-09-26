@@ -79,7 +79,7 @@ export const verificationEmailTemplate = (verificationUrl: string) => {
   <body>
     <div class="container">
       <div class="header">
-        <h1>FreshCart</h1>
+        <h1>Groceria</h1>
       </div>
       <div class="content">
         <h2>Verifikasi Email Anda</h2>
@@ -93,7 +93,7 @@ export const verificationEmailTemplate = (verificationUrl: string) => {
         <p>Jika Anda tidak melakukan permintaan ini, abaikan email ini.</p>
       </div>
       <div class="footer">
-        &copy; 2025 FreshCart. Semua hak dilindungi.
+        &copy; 2025 Groceria. Semua hak dilindungi.
       </div>
     </div>
   </body>
