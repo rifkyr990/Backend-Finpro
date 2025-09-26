@@ -115,7 +115,12 @@ class ProductController {
           is_deleted: false,
           stocks: {
             some: {
-              store: { is_deleted: false, province, ...(city ? { city } : {}) },
+              store: {
+                is_active: true,
+                is_deleted: false,
+                province,
+                ...(city ? { city } : {}),
+              },
             },
           },
         },
@@ -158,6 +163,7 @@ class ProductController {
             stocks: {
               some: {
                 store: {
+                  is_active: true,
                   is_deleted: false,
                   province,
                 },
