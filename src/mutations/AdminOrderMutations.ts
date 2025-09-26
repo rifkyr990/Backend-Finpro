@@ -103,6 +103,13 @@ export class AdminOrderMutations {
           data: { stock_quantity: { increment: item.quantity } },
         });
       }
+
+      // Restore the discount usage
+      await tx.discountUsage.updateMany({
+        where: { order_id: orderId, status: "APPLIED" },
+        data: { status: "CANCELLED" },
+      });
+
       return order;
     });
   }

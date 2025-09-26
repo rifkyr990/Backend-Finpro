@@ -59,7 +59,6 @@ class PaymentController {
         name: item.product.name.substring(0, 50),
       }));
 
-      // SIMPLIFIED: Add shipping and discount from the definitive order record
       if (Number(order.shipping_cost) > 0) {
         item_details.push({
           id: "SHIPPING_COST",
@@ -78,12 +77,16 @@ class PaymentController {
         });
       }
 
+      const calculatedGrossAmount = item_details.reduce(
+        (total, item) => total + item.price * item.quantity,
+        0
+      );
+
       const midtransOrderId = `ORDER-${order.id}-${Date.now()}`;
       const parameter = {
         transaction_details: {
           order_id: midtransOrderId,
-
-          gross_amount: Math.round(Number(order.total_price)),
+          gross_amount: calculatedGrossAmount,
         },
         customer_details: {
           first_name: order.user.first_name,
