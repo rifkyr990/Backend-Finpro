@@ -42,51 +42,24 @@ type FullUserPrismaOrder = Order & {
 
 export class OrderMappers {
   public static formatOrderForAdminDetailResponse(order: FullPrismaOrder) {
-    const subtotal = order.orderItems.reduce(
-      (sum, item) => sum + Number(item.price_at_purchase) * item.quantity,
-      0
-    );
-
-    const discountUsage = order.DiscountUsage[0];
-    let discountAmount = 0;
-
-    if (discountUsage?.discount) {
-      const { discount } = discountUsage;
-      if (discount.type === "B1G1" && discount.product_id) {
-        const targetItem = order.orderItems.find(
-          (item) => item.product_id === discount.product_id
-        );
-        if (targetItem) {
-          discountAmount = Number(targetItem.price_at_purchase);
-        }
-      } else if (discount.discAmount) {
-        if (discount.valueType === "PERCENTAGE") {
-          discountAmount = (subtotal * Number(discount.discAmount)) / 100;
-        } else {
-          discountAmount = Number(discount.discAmount);
-        }
-      }
-    }
-
-    discountAmount = Math.min(subtotal, discountAmount);
-    const shippingCost =
-      Number(order.total_price) - (subtotal - discountAmount);
+    const recipientName = order.destination_address.split(" (")[0];
+    const recipientPhone =
+      order.destination_address.match(/\(([^)]+)\)/)?.[1] || null;
 
     return {
       id: order.id,
       createdAt: order.created_at,
       status: order.orderStatus.status,
       customer: {
-        name: `${order.user.first_name} ${order.user.last_name}`,
+        name: recipientName,
         email: order.user.email,
-        phone: order.user.phone,
+        phone: recipientPhone,
       },
       store: {
         name: order.store.name,
       },
       shipping: {
         address: order.destination_address,
-        cost: (shippingCost > 0 ? shippingCost : 0).toString(),
       },
       payment: {
         method: order.payments[0]?.paymentMethod.name || "N/A",
@@ -94,8 +67,9 @@ export class OrderMappers {
         proofUrl: order.payments[0]?.proof?.image_url || null,
       },
       pricing: {
-        subtotal: subtotal.toString(),
-        discount: discountAmount.toString(),
+        subtotal: order.subtotal.toString(),
+        discount: order.discount_amount.toString(),
+        cost: order.shipping_cost.toString(),
         total: order.total_price.toString(),
       },
       items: order.orderItems.map((item) => ({
@@ -109,42 +83,13 @@ export class OrderMappers {
   }
 
   public static formatOrderForUserDetailResponse(order: FullUserPrismaOrder) {
-    const subtotal = order.orderItems.reduce(
-      (sum, item) => sum + Number(item.price_at_purchase) * item.quantity,
-      0
-    );
-
-    const discountUsage = order.DiscountUsage[0];
-    let discountAmount = 0;
-
-    if (discountUsage?.discount) {
-      const { discount } = discountUsage;
-      if (discount.type === "B1G1") {
-        const targetItem = order.orderItems.find(
-          (item) => item.product_id === discount.product_id
-        );
-        if (targetItem) {
-          discountAmount = Number(targetItem.price_at_purchase);
-        }
-      } else if (discount.discAmount) {
-        if (discount.valueType === "PERCENTAGE") {
-          discountAmount = (subtotal * Number(discount.discAmount)) / 100;
-        } else {
-          discountAmount = Number(discount.discAmount);
-        }
-      }
-    }
-    discountAmount = Math.min(subtotal, discountAmount);
-    const shippingCost =
-      Number(order.total_price) - (subtotal - discountAmount);
-
     return {
       id: order.id,
       createdAt: order.created_at,
       totalPrice: order.total_price.toString(),
-      subtotal: subtotal.toString(),
-      shippingCost: (shippingCost > 0 ? shippingCost : 0).toString(),
-      discountAmount: discountAmount.toString(),
+      subtotal: order.subtotal.toString(),
+      shippingCost: order.shipping_cost.toString(),
+      discountAmount: order.discount_amount.toString(),
       destinationAddress: order.destination_address,
       store: { id: order.store.id, name: order.store.name },
       status: order.orderStatus.status,

@@ -59,59 +59,22 @@ class PaymentController {
         name: item.product.name.substring(0, 50),
       }));
 
-      const subtotal = item_details.reduce(
-        (acc, item) => acc + item.price * item.quantity,
-        0
-      );
-
-      const discountUsage = await prisma.discountUsage.findFirst({
-        where: { order_id: order.id },
-        include: { discount: true },
-      });
-
-      let discountAmount = 0;
-
-      if (discountUsage && discountUsage.discount) {
-        const discount = discountUsage.discount;
-        if (discount.type === "B1G1" && discount.product_id) {
-          const targetItem = order.orderItems.find(
-            (item) => item.product_id === discount.product_id
-          );
-          if (targetItem) {
-            discountAmount = Math.round(Number(targetItem.price_at_purchase));
-          }
-        } else if (
-          (discount.type === "MANUAL" || discount.type === "MIN_PURCHASE") &&
-          discount.discAmount
-        ) {
-          if (discount.valueType === "PERCENTAGE") {
-            discountAmount = Math.round(
-              (subtotal * Number(discount.discAmount)) / 100
-            );
-          } else {
-            discountAmount = Math.round(Number(discount.discAmount));
-          }
-        }
-
-        if (discountAmount > 0) {
-          item_details.push({
-            id: `DISC-${discount.code}`,
-            price: -discountAmount,
-            quantity: 1,
-            name: `Discount (${discount.code})`,
-          });
-        }
-      }
-
-      const actualShippingCost =
-        Math.round(Number(order.total_price)) - (subtotal - discountAmount);
-
-      if (actualShippingCost > 0) {
+      // SIMPLIFIED: Add shipping and discount from the definitive order record
+      if (Number(order.shipping_cost) > 0) {
         item_details.push({
           id: "SHIPPING_COST",
-          price: actualShippingCost,
+          price: Math.round(Number(order.shipping_cost)),
           quantity: 1,
           name: "Shipping Fee",
+        });
+      }
+
+      if (Number(order.discount_amount) > 0) {
+        item_details.push({
+          id: "DISCOUNT",
+          price: -Math.round(Number(order.discount_amount)),
+          quantity: 1,
+          name: "Discount",
         });
       }
 

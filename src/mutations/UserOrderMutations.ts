@@ -9,6 +9,9 @@ interface CreateOrderTransactionPayload {
   userAddress: UserAddress;
   destinationAddress: string;
   paymentMethodId: number;
+  subtotal: number;
+  shippingCost: number;
+  discountAmount: number;
   totalPrice: number;
   finalAppliedDiscount: Discount | null;
 }
@@ -24,6 +27,9 @@ export class UserOrderMutations {
       userAddress,
       destinationAddress,
       paymentMethodId,
+      subtotal,
+      shippingCost,
+      discountAmount,
       totalPrice,
       finalAppliedDiscount,
     } = payload;
@@ -34,6 +40,9 @@ export class UserOrderMutations {
         destination_address: destinationAddress,
         latitude: userAddress.latitude,
         longitude: userAddress.longitude,
+        subtotal: subtotal,
+        shipping_cost: shippingCost,
+        discount_amount: discountAmount,
         total_price: totalPrice,
         order_status_id: 1, // PENDING_PAYMENT
       },

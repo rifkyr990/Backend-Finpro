@@ -112,10 +112,12 @@ class OrderService {
       }
       productDiscount = Math.min(subtotal, productDiscount);
       shippingDiscount = Math.min(shippingCostNum, shippingDiscount);
+      const totalDiscount = productDiscount + shippingDiscount;
       const totalPrice = Math.max(
         0,
-        subtotal - productDiscount + (shippingCostNum - shippingDiscount)
+        subtotal + shippingCostNum - totalDiscount
       );
+
       return await UserOrderMutations.createOrderTransaction({
         tx,
         userId,
@@ -124,7 +126,10 @@ class OrderService {
         userAddress,
         destinationAddress,
         paymentMethodId,
-        totalPrice,
+        subtotal: subtotal,
+        shippingCost: shippingCostNum,
+        discountAmount: totalDiscount,
+        totalPrice: totalPrice,
         finalAppliedDiscount,
       });
     });
