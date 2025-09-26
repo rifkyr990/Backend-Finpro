@@ -83,6 +83,12 @@ export class OrderMappers {
   }
 
   public static formatOrderForUserDetailResponse(order: FullUserPrismaOrder) {
+    const recipientName = order.destination_address.split(" (")[0];
+    const recipientPhone =
+      order.destination_address.match(/\(([^)]+)\)/)?.[1] || null;
+    const fullAddress =
+      order.destination_address.split("), ")[1] || order.destination_address;
+
     return {
       id: order.id,
       createdAt: order.created_at,
@@ -90,7 +96,11 @@ export class OrderMappers {
       subtotal: order.subtotal.toString(),
       shippingCost: order.shipping_cost.toString(),
       discountAmount: order.discount_amount.toString(),
-      destinationAddress: order.destination_address,
+      destinationAddress: {
+        name: recipientName,
+        phone: recipientPhone,
+        fullAddress: fullAddress,
+      },
       store: { id: order.store.id, name: order.store.name },
       status: order.orderStatus.status,
       payment: order.payments[0]
