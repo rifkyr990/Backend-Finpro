@@ -9,14 +9,65 @@ class UserAddressService {
   }
 
   public static async createAddress(userId: string, data: any) {
-    if (data.is_primary) {
-      await prisma.userAddress.updateMany({
-        where: { user_id: userId, is_primary: true },
-        data: { is_primary: false },
-      });
-    }
+  // Daftar field yang wajib diisi
+  const requiredFields = [
+    'name',
+    'phone',
+    'label',
+    'province',
+    'province_id',
+    'city',
+    'city_id',
+    'district',
+    'district_id',
+    'subdistrict',
+    'subdistrict_id',
+    'postal_code',
+    'street',
+  ];
 
-    const {
+  // Cek apakah ada field yang kosong/null/undefined
+  const missingFields = requiredFields.filter(
+    (field) => !data[field] && data[field] !== 0 // 0 dianggap valid
+  );
+
+  if (missingFields.length > 0) {
+    throw new Error(`Field berikut wajib diisi: ${missingFields.join(', ')}`);
+  }
+
+  // Update is_primary sebelumnya jadi false jika perlu
+  if (data.is_primary) {
+    await prisma.userAddress.updateMany({
+      where: { user_id: userId, is_primary: true },
+      data: { is_primary: false },
+    });
+  }
+
+  // Ekstrak data
+  const {
+    name,
+    phone,
+    label,
+    province,
+    province_id,
+    city,
+    city_id,
+    district,
+    district_id,
+    subdistrict,
+    subdistrict_id,
+    postal_code,
+    street,
+    detail,
+    latitude,
+    longitude,
+    is_primary,
+  } = data;
+
+  // Simpan data
+  return prisma.userAddress.create({
+    data: {
+      user_id: userId,
       name,
       phone,
       label,
@@ -33,32 +84,11 @@ class UserAddressService {
       detail,
       latitude,
       longitude,
-      is_primary,
-    } = data;
+      is_primary: Boolean(is_primary),
+    },
+  });
+}
 
-    return prisma.userAddress.create({
-      data: {
-        user_id: userId,
-        name,
-        phone,
-        label,
-        province,
-        province_id,
-        city,
-        city_id,
-        district,
-        district_id,
-        subdistrict,
-        subdistrict_id,
-        postal_code,
-        street,
-        detail,
-        latitude,
-        longitude,
-        is_primary: Boolean(is_primary),
-      },
-    });
-  }
 
   public static async updateAddress(userId: string, id: number, data: any) {
     if (data.is_primary) {
