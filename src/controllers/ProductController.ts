@@ -39,40 +39,83 @@ class ProductController {
   };
 
   // untuk product list di dashboard
-  public static getAllProduct = async (req: Request, res: Response) => {
-    const whereClause: any = {
-      is_deleted: false,
-    };
-    try {
-      const productData = await prisma.product.findMany({
-        where: {
-          is_deleted: false,
-        },
-        include: {
-          stocks: {
-            select: {
-              store: true,
-              stock_quantity: true,
-            },
+  public static getAllProduct = asyncHandler(
+    async (req: Request, res: Response) => {
+      const {
+        page = "1",
+        limit = "10",
+        search = "",
+        category,
+        sort,
+      } = req.query;
+
+      const currentPage = Math.max(parseInt(page as string, 10), 1);
+      const perPage = Math.max(parseInt(limit as string, 10), 1);
+      const skip = (currentPage - 1) * perPage;
+
+      const whereClause: any = {};
+
+      if (search) {
+        whereClause.name = { contains: search as string, mode: "insensitive" };
+      }
+
+      if (category && category !== "all") {
+        whereClause.category = { category: { equals: category as string } };
+      }
+
+      let orderBy: any = { created_at: "desc" };
+
+      // LOGIKA FILTER STATUS DIPERBAIKI
+      switch (sort) {
+        case "highest-price":
+          orderBy = { price: "desc" };
+          break;
+        case "lowest-price":
+          orderBy = { price: "asc" };
+          break;
+        case "active-product":
+          whereClause.is_active = true;
+          break;
+        case "inactive-product":
+          whereClause.is_active = false;
+          break;
+        // Jika tidak ada filter status, 'is_active' tidak ditambahkan ke whereClause,
+        // sehingga produk aktif dan non-aktif akan muncul.
+      }
+
+      const [totalProducts, products] = await prisma.$transaction([
+        prisma.product.count({ where: whereClause }),
+        prisma.product.findMany({
+          where: whereClause,
+          include: {
+            stocks: { select: { stock_quantity: true } },
+            images: { take: 1 },
+            category: true,
           },
-          images: true,
-          category: true,
-        },
-      });
-      const formattedProducts = productData.map((p) => ({
+          orderBy,
+          skip,
+          take: perPage,
+        }),
+      ]);
+
+      const formattedProducts = products.map((p) => ({
         ...p,
         price: p.price.toString(),
       }));
+
       ApiResponse.success(
         res,
-        formattedProducts,
+        {
+          data: formattedProducts,
+          total: totalProducts,
+          page: currentPage,
+          totalPages: Math.ceil(totalProducts / perPage),
+        },
         "Get All Product Success",
         200
       );
-    } catch (error) {
-      ApiResponse.error(res, "Get All Product Error", 400);
     }
-  };
+  );
 
   // khusus untuk product details by Id
   public static getProductById = async (req: Request, res: Response) => {
