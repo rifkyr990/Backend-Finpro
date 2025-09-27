@@ -2,135 +2,46 @@ import prisma from "../config/prisma";
 import { ApiResponse } from "../utils/ApiResponse";
 import { Request, Response } from "express";
 import { Prisma } from "@prisma/client";
+import DiscountService from "../services/DiscountService";
+import { asyncHandler } from "../utils/AsyncHandler";
 
 class DiscountController {
-  public static getAllDiscount = async (req: Request, res: Response) => {
-    try {
-      const data = await prisma.discount.findMany({
-        where: {
-          is_deleted: false,
-        },
-        select: {
-          id: true,
-          name: true,
-          product_id: true,
-          store_id: true,
-          code: true,
-          description: true,
-          type: true,
-          minPurch: true,
-          minQty: true,
-          freeQty: true,
-          discAmount: true,
-          start_date: true,
-          end_date: true,
-          creator: {
-            select: {
-              first_name: true,
-              last_name: true,
-            },
-          },
-          product: {
-            select: {
-              name: true,
-            },
-          },
-          store: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          usage: {
-            where: {
-              status: "APPLIED",
-            },
-            select: {
-              user_id: true,
-            },
-          },
-        },
-      });
+  public static getAllDiscount = asyncHandler(
+    async (req: Request, res: Response) => {
+      const data = await DiscountService.getAllDiscount();
       ApiResponse.success(res, data, "Get All Discount Success");
-    } catch (error) {
-      ApiResponse.error(res, "Get All Discount Error", 400);
     }
-  }; //arco
+  );
+
   // soft-delete discount
-  public static softDeleteDiscount = async (req: Request, res: Response) => {
-    try {
+  public static softDeleteDiscount = asyncHandler(
+    async (req: Request, res: Response) => {
       const discount_id = Number(req.params.id);
-      const softDeleteDiscount = await prisma.discount.update({
-        where: {
-          id: discount_id,
-        },
-        data: { is_deleted: true },
-      });
+      const softDeleteDiscount = await DiscountService.softDeleteDiscount(
+        discount_id
+      );
       ApiResponse.success(
         res,
         softDeleteDiscount,
         "Soft Delete Discount Success",
         200
       );
-    } catch (error) {
-      ApiResponse.error(res, "Soft Delete Discount Error", 400);
     }
-  };
-  public static createDiscount = async (req: Request, res: Response) => {
-    try {
-      const {
-        name,
-        product_id,
-        store_id,
-        code,
-        description,
-        type,
-        minPurch,
-        minQty,
-        discAmount,
-        valueType,
-        start_date,
-        end_date,
-        user_id,
-      } = req.body.data;
+  );
+  public static createDiscount = asyncHandler(
+    async (req: Request, res: Response) => {
+      const discountData = req.body.data;
 
-      const findCreator = await prisma.user.findUnique({
-        where: {
-          id: user_id,
-        },
-        select: {
-          first_name: true,
-          last_name: true,
-        },
-      });
-      const fullNameCreator = `${findCreator?.first_name} ${findCreator?.last_name}`;
-
-      const createDiscount = await prisma.discount.create({
-        data: {
-          name,
-          product_id,
-          store_id,
-          code,
-          description,
-          type,
-          minPurch,
-          minQty,
-          discAmount,
-          valueType,
-          start_date,
-          end_date,
-          createdBy: user_id,
-        },
-      });
+      if (!discountData) {
+        return ApiResponse.error(res, "Required all fields", 400);
+      }
+      const createDiscount = await DiscountService.createDiscount(discountData);
       ApiResponse.success(res, createDiscount, "Create Discount Success!", 200);
-    } catch (error) {
-      ApiResponse.error(res, "Create Discount Error", 400);
-      console.log(error);
     }
-  };
+  );
 
-  public static verifyDiscount = async (req: Request, res: Response) => {
-    try {
+  public static verifyDiscount = asyncHandler(
+    async (req: Request, res: Response) => {
       const { code, subtotal, items } = req.body;
 
       if (!code || subtotal === undefined || !items) {
@@ -236,11 +147,8 @@ class DiscountController {
         responsePayload,
         "Promo code applied successfully"
       );
-    } catch (error) {
-      console.log(error);
-      ApiResponse.error(res, "Error verifying promo code", 500);
     }
-  };
+  );
 }
 
 export default DiscountController;

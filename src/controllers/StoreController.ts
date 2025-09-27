@@ -3,141 +3,45 @@ import { ApiResponse } from "../utils/ApiResponse";
 import prisma from "../config/prisma";
 import { request } from "http";
 import { hashPassword } from "../utils/bcrypt";
+import StoreService from "../services/StoreService";
+import { asyncHandler } from "../utils/AsyncHandler";
 
 class StoreController {
-  // get all stores data - arco start
-  public static getAllStores = async (req: Request, res: Response) => {
-    try {
-      const storesData = await prisma.store.findMany({
-        where: {
-          is_deleted: false,
-        },
-        include: {
-          admins: {
-            where: {
-              is_deleted: false,
-            },
-          },
-        },
-      });
+  public static getAllStores = asyncHandler(
+    async (req: Request, res: Response) => {
+      const storesData = await StoreService.getAllStores();
       ApiResponse.success(res, storesData, "Get All Store Data Success!");
-    } catch (error) {
-      ApiResponse.error(res, "Error get all stores data", 400);
     }
-  }; //arco
+  );
 
-  public static getAllStoreAdmin = async (req: Request, res: Response) => {
-    try {
-      // Store admin yang tidak punya store
-      const storeAdminWoStore = await prisma.user.findMany({
-        where: {
-          store_id: null,
-          role: "STORE_ADMIN",
-          is_deleted: false,
-        },
-        select: {
-          id: true,
-          first_name: true,
-          last_name: true,
-          role: true,
-          phone: true,
-        },
-      });
-
-      // Store admin yang punya store
-      const storeAdminWithStore = await prisma.store.findMany({
-        select: {
-          name: true,
-          id: true,
-          admins: {
-            where: {
-              is_deleted: false,
-            },
-            select: {
-              id: true,
-              first_name: true,
-              last_name: true,
-              role: true,
-              phone: true,
-            },
-          },
-        },
-      });
+  public static getAllStoreAdmin = asyncHandler(
+    async (req: Request, res: Response) => {
+      const storeAdminWoStore = await StoreService.storeAdminWithoutStore();
+      const storeAdminWithStore = await StoreService.storeAdminWithStore();
 
       const storeAdminData = {
         withStore: storeAdminWithStore,
         withoutStore: storeAdminWoStore,
       };
       ApiResponse.success(res, storeAdminData, "Get Store Admins Success", 200);
-    } catch (error) {
-      ApiResponse.error(res, "Get All Store Admin Failed", 400);
     }
-  }; // arco
+  );
 
-  public static postNewAdmin = async (req: Request, res: Response) => {
-    try {
-      let { first_name, last_name, email, password, store_id, phone } =
-        req.body;
-
-      email = email.trim().toLowerCase();
-      // checking for existing data
-      const checkData = await prisma.user.findUnique({
-        where: {
-          email,
-        },
-      });
-      if (checkData) {
-        throw new Error("There is an existing data");
-      }
-
-      const hashedPassword = await hashPassword(password);
-      const data = await prisma.user.create({
-        data: {
-          first_name,
-          last_name,
-          password: hashedPassword,
-          email,
-          store_id: store_id ?? null,
-          phone,
-          is_verified: true,
-          role: "STORE_ADMIN",
-          image_url: "https://iili.io/KRwBd91.png",
-        },
-      });
-      ApiResponse.success(res, data, "Create New Store Admin Success", 200);
-    } catch (error) {
-      ApiResponse.error(res, "Create new store admin error");
-      console.log(error);
+  public static postNewAdmin = asyncHandler(
+    async (req: Request, res: Response) => {
+      const newAdminData = req.body;
+      const result = await StoreService.postNewAdmin(newAdminData);
+      ApiResponse.success(res, result, "Create New Store Admin Success", 200);
     }
-  }; //arco
+  );
 
-  public static softDeleteStoreById = async (req: Request, res: Response) => {
-    try {
+  public static softDeleteStoreById = asyncHandler(
+    async (req: Request, res: Response) => {
       const storeId = Number(req.params.id);
-      const result = await prisma.$transaction(async (tx) => {
-        // revert admin to customer
-        await tx.user.updateMany({
-          where: {
-            store_id: storeId,
-            role: "STORE_ADMIN",
-          },
-          data: {
-            store_id: null,
-          },
-        });
-        // soft delete store id
-        await tx.store.update({
-          where: { id: storeId },
-          data: {
-            is_deleted: true,
-          },
-        });
-      });
+      const result = await StoreService.softDeleteStoreById(storeId);
       ApiResponse.success(res, result, "Delete Data Success", 200);
-    } catch (error) {
-      ApiResponse.error(res, "Error delete store data by id", 400);
     }
-  }; // arco
+  );
 
   // di dalam StoreController
   public static createStore = async (req: Request, res: Response) => {
