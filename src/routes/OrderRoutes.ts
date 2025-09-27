@@ -13,10 +13,17 @@ class OrderRoutes {
   }
 
   private initializeRoutes() {
+    this.router.get("/all", OrderController.getAllOrderData);
     this.router.get(
       "/my-orders",
       authMiddleware(),
       OrderController.getMyOrders
+    );
+    this.router.get(
+      "/all-for-admin",
+      authMiddleware(),
+      authorizeRoles("SUPER_ADMIN", "STORE_ADMIN"),
+      OrderController.getAllAdminOrders
     );
     this.router.post("/", authMiddleware(), OrderController.createOrder);
     this.router.get(
@@ -44,6 +51,51 @@ class OrderRoutes {
       "/:orderId/repay",
       authMiddleware(),
       OrderController.repayOrder
+    );
+
+    this.router.get(
+      "/admin/summary",
+      authMiddleware(),
+      authorizeRoles("SUPER_ADMIN", "STORE_ADMIN"),
+      OrderController.getOrderSummary
+    );
+
+    this.router.get(
+      "/admin/:orderId",
+      authMiddleware(),
+      authorizeRoles("SUPER_ADMIN", "STORE_ADMIN"),
+      OrderController.getAdminOrderDetail
+    );
+    this.router.patch(
+      "/admin/:orderId/confirm-payment",
+      authMiddleware(),
+      authorizeRoles("SUPER_ADMIN", "STORE_ADMIN"),
+      OrderController.confirmPayment
+    );
+    this.router.patch(
+      "/admin/:orderId/reject-payment",
+      authMiddleware(),
+      authorizeRoles("SUPER_ADMIN", "STORE_ADMIN"),
+      OrderController.rejectPayment
+    );
+    this.router.patch(
+      "/admin/:orderId/send-order",
+      authMiddleware(),
+      authorizeRoles("SUPER_ADMIN", "STORE_ADMIN"),
+      OrderController.sendOrder
+    );
+    this.router.patch(
+      "/admin/:orderId/cancel",
+      authMiddleware(),
+      authorizeRoles("SUPER_ADMIN", "STORE_ADMIN"),
+      OrderController.adminCancelOrder
+    );
+
+    this.router.patch(
+      "/admin/:orderId/mark-refunded",
+      authMiddleware(),
+      authorizeRoles("SUPER_ADMIN", "STORE_ADMIN"),
+      OrderController.markAsRefunded
     );
   }
 }
