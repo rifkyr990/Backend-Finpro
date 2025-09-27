@@ -1,5 +1,4 @@
 import prisma from "../config/prisma";
-import { DiscountData } from "../types/discount";
 
 class DiscountService {
   public static getAllDiscount = async () => {
