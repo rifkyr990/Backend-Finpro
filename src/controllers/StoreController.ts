@@ -1,188 +1,93 @@
 import { Request, Response } from "express";
 import { ApiResponse } from "../utils/ApiResponse";
-import prisma from "../config/prisma";
-import { request } from "http";
-import { hashPassword } from "../utils/bcrypt";
 import StoreService from "../services/StoreService";
-import { asyncHandler } from "../utils/AsyncHandler";
 
 class StoreController {
-  public static getAllStores = asyncHandler(
-    async (req: Request, res: Response) => {
-      const storesData = await StoreService.getAllStores();
-      ApiResponse.success(res, storesData, "Get All Store Data Success!");
+  private static handleSuccess(res: Response, data: any, message = "Success", code = 200) {
+    ApiResponse.success(res, data, message, code);
+  }
+
+  private static handleError(res: Response, message = "Error", code = 400, error?: any) {
+    if (error) console.error(error);
+    ApiResponse.error(res, message, code);
+  }
+
+  public static getAllStores = async (req: Request, res: Response) => {
+    try {
+      const stores = await StoreService.getAllStores();
+      this.handleSuccess(res, stores, "Get All Store Data Success!");
+    } catch (error) {
+      this.handleError(res, "Error get all stores data", 400, error);
     }
-  );
+  };
 
-  public static getAllStoreAdmin = asyncHandler(
-    async (req: Request, res: Response) => {
-      const storeAdminWoStore = await StoreService.storeAdminWithoutStore();
-      const storeAdminWithStore = await StoreService.storeAdminWithStore();
-
-      const storeAdminData = {
-        withStore: storeAdminWithStore,
-        withoutStore: storeAdminWoStore,
-      };
-      ApiResponse.success(res, storeAdminData, "Get Store Admins Success", 200);
+  public static getAllStoreAdmin = async (req: Request, res: Response) => {
+    try {
+      const [withoutStore, withStore] = await Promise.all([
+        StoreService.getStoreAdminsWithoutStore(),
+        StoreService.getStoreAdminsWithStore(),
+      ]);
+      this.handleSuccess(res, { withStore, withoutStore }, "Get Store Admins Success");
+    } catch (error) {
+      this.handleError(res, "Get All Store Admin Failed", 400, error);
     }
-  );
+  };
 
-  public static postNewAdmin = asyncHandler(
-    async (req: Request, res: Response) => {
-      const newAdminData = req.body;
-      const result = await StoreService.postNewAdmin(newAdminData);
-      ApiResponse.success(res, result, "Create New Store Admin Success", 200);
+  public static postNewAdmin = async (req: Request, res: Response) => {
+    try {
+      let { first_name, last_name, email, password, store_id, phone } = req.body;
+      email = email.trim().toLowerCase();
+
+      const existingUser = await StoreService.checkUserExists(email);
+      if (existingUser) return this.handleError(res, "There is an existing data", 400);
+
+      const data = await StoreService.createStoreAdmin({ first_name, last_name, email, password, store_id, phone });
+      this.handleSuccess(res, data, "Create New Store Admin Success");
+    } catch (error) {
+      this.handleError(res, "Create new store admin error", 400, error);
     }
-  );
+  };
 
-  public static softDeleteStoreById = asyncHandler(
-    async (req: Request, res: Response) => {
+  public static softDeleteStoreById = async (req: Request, res: Response) => {
+    try {
       const storeId = Number(req.params.id);
-      const result = await StoreService.softDeleteStoreById(storeId);
-      ApiResponse.success(res, result, "Delete Data Success", 200);
+      await StoreService.softDeleteStore(storeId);
+      this.handleSuccess(res, null, "Delete Data Success");
+    } catch (error) {
+      this.handleError(res, "Error delete store data by id", 400, error);
     }
-  );
+  };
 
-  // di dalam StoreController
   public static createStore = async (req: Request, res: Response) => {
     try {
-      const {
-        name,
-        address,
-        city,
-        city_id,
-        province,
-        province_id,
-        latitude,
-        longitude,
-        is_active,
-        adminIds,
-      } = req.body.payload;
-
-      // 1. Buat store baru
-      const newStore = await prisma.store.create({
-        data: {
-          name,
-          address,
-          city,
-          city_id,
-          province,
-          province_id,
-          latitude,
-          longitude,
-          is_active,
-          // admins: {
-          //   connect: adminIds.map(id => ({ id })),
-          // }
-        },
-      });
-
-      // 2. Update admin agar terhubung ke store & ubah role ke STORE_ADMIN
-      if (adminIds && adminIds.length > 0) {
-        await prisma.user.updateMany({
-          where: {
-            id: { in: adminIds },
-          },
-          data: {
-            role: "STORE_ADMIN",
-            store_id: newStore.id,
-          },
-        });
-      }
-
-      // 3. Ambil data lengkap store + admins
-      const storeWithAdmins = await prisma.store.findUnique({
-        where: { id: newStore.id },
-        include: {
-          admins: {
-            select: {
-              id: true,
-              first_name: true,
-              last_name: true,
-              role: true,
-            },
-          },
-        },
-      });
-
-      return ApiResponse.success(
-        res,
-        storeWithAdmins,
-        "Create Store Success!",
-        201
-      );
+      const store = await StoreService.createStore(req.body.payload);
+      this.handleSuccess(res, store, "Create Store Success!", 201);
     } catch (error) {
-      console.error(error);
-      return ApiResponse.error(res, "Create Store Error", 400);
+      this.handleError(res, "Create Store Error", 400, error);
     }
   };
 
   public static patchStoreById = async (req: Request, res: Response) => {
     try {
       const storeId = Number(req.params.id);
-      const {
-        name,
-        address,
-        city,
-        city_id,
-        province,
-        province_id,
-        latitude,
-        longitude,
-        is_active,
-      } = req.body.payload;
-
-      const cityName = city.trim().toUpperCase();
-      const provinceName = province.trim().toUpperCase();
-
-      const updateStore = await prisma.store.update({
-        where: { id: storeId },
-        data: {
-          name,
-          address,
-          city: cityName,
-          city_id,
-          province: provinceName,
-          province_id,
-          latitude,
-          longitude,
-          is_active,
-        },
-      });
-
-      ApiResponse.success(
-        res,
-        updateStore,
-        "Update Store Details Success!",
-        200
-      );
+      const updatedStore = await StoreService.updateStore(storeId, req.body.payload);
+      this.handleSuccess(res, updatedStore, "Update Store Details Success!");
     } catch (error) {
-      ApiResponse.error(res, "Update Store Error", 400);
+      this.handleError(res, "Update Store Error", 400, error);
     }
   };
 
-  public static patchStoreAdminRelocation = async (
-    req: Request,
-    res: Response
-  ) => {
+  public static patchStoreAdminRelocation = async (req: Request, res: Response) => {
     try {
       const id = req.params.id;
-      const store_id = req.body.store_id;
+      const { store_id } = req.body;
 
-      if (!id) return;
+      if (!id) return this.handleError(res, "Admin ID is required", 400);
 
-      const relocatedAdmin = await prisma.user.update({
-        where: { id },
-        data: { store_id: store_id },
-      });
-      ApiResponse.success(
-        res,
-        relocatedAdmin,
-        "Relocate Store Admin Success",
-        200
-      );
+      const relocatedAdmin = await StoreService.relocateStoreAdmin(id, store_id);
+      this.handleSuccess(res, relocatedAdmin, "Relocate Store Admin Success");
     } catch (error) {
-      ApiResponse.error(res, "Error Relocate Store Admin", 400);
+      this.handleError(res, "Error Relocate Store Admin", 400, error);
     }
   };
 }
