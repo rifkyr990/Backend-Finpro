@@ -210,15 +210,21 @@ async function main() {
     });
     createdProducts.push(product);
     const imageCount = faker.number.int({ min: 1, max: 4 });
+    const safeCategory = randomCategoryName
+      .toLowerCase()
+      .replace(/[^a-z]/g, "-");
     for (let i = 0; i < imageCount; i++) {
       await prisma.productImage.create({
         data: {
           product_id: product.id,
-          image_url: faker.image.urlLoremFlickr({
-            category: ` ${randomCategoryName.toLowerCase()},food,grocery`,
-            width: 640,
-            height: 480,
-          }),
+          // image_url: faker.image.urlLoremFlickr({
+          //   category: ` ${randomCategoryName.toLowerCase()},food,grocery`,
+          //   width: 640,
+          //   height: 480,
+          // }),
+          image_url: `https://picsum.photos/seed/${encodeURIComponent(
+            `${randomCategoryName}-${product.name}`
+          )}/640/480`,
         },
       });
     }

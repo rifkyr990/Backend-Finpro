@@ -1,13 +1,13 @@
 import { Request, Response } from "express";
 import { ApiResponse } from "../utils/ApiResponse";
 import prisma from "../config/prisma";
+import { asyncHandler } from "../utils/AsyncHandler";
 
 class ReportController {
-  public static getAllOrderData = async (req: Request, res: Response) => {
-    try {
+  public static getAllOrderData = asyncHandler(
+    async (req: Request, res: Response) => {
       const { month, year, storeId } = req.query;
       // ambil data bulan dan tahun dari query
-      console.log(req.query);
       const startDate = new Date(Number(year), Number(month) - 1, 1);
       const endDate = new Date(Number(year), Number(month), 0, 23, 59, 59, 999);
 
@@ -69,12 +69,11 @@ class ReportController {
       });
 
       ApiResponse.success(res, finalResult, "Get All Order Data Success", 200);
-    } catch (error) {
-      ApiResponse.error(res, "Get All Order Data Error", 400);
     }
-  };
-  public static getOrderDataByStore = async (req: Request, res: Response) => {
-    try {
+  );
+
+  public static getOrderDataByStore = asyncHandler(
+    async (req: Request, res: Response) => {
       const { month, year, storeId } = req.query;
 
       if (!storeId) {
@@ -141,11 +140,8 @@ class ReportController {
         "Get Order Data By Store Success",
         200
       );
-    } catch (error) {
-      console.error(error);
-      ApiResponse.error(res, "Get Order Data By Store Error", 400);
     }
-  };
+  );
 }
 
 export default ReportController;

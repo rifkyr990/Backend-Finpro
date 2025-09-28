@@ -19,7 +19,7 @@ class UserController {
     } catch (error) {
       ApiResponse.error(res, "Error Get All Users Data", 400);
     }
-  }; // arco
+  };
   public static getUserById = async (req: Request, res: Response) => {
     try {
       const user_id = req.params.id?.toString();
@@ -245,13 +245,8 @@ class UserController {
       const userId = req.user.id;
       const { oldPassword, newPassword } = req.body;
       if (!oldPassword || !newPassword) {
-        return ApiResponse.error(
-          res,
-          "Password lama & baru wajib diisi dulu gaes",
-          400
-        );
+        return ApiResponse.error(res, "Password lama & baru wajib diisi dulu", 400);
       }
-
       await UserService.changePassword(userId, oldPassword, newPassword);
 
       return ApiResponse.success(res, null, "Password berhasil dirubah");
