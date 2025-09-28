@@ -1,6 +1,40 @@
 import prisma from "../config/prisma";
 
+interface AddressData {
+  name: string;
+  phone: string;
+  label: string;
+  province: string;
+  province_id: string | null;
+  city: string;
+  city_id: string | null;
+  district: string;
+  district_id: string | null;
+  subdistrict: string;
+  subdistrict_id: string | null;
+  postal_code: string;
+  street: string;
+  detail?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  is_primary?: boolean;
+}
+
 class UserAddressService {
+  private static validateAddressData(data: Partial<AddressData>) {
+    const requiredFields = [
+      'name', 'phone', 'label', 'province', 'province_id',
+      'city', 'city_id', 'district', 'district_id',
+      'subdistrict', 'subdistrict_id', 'postal_code', 'street',
+    ];
+    const missingFields = requiredFields.filter(
+      (field) => !data[field as keyof AddressData] && data[field as keyof AddressData] !== 0
+    );
+    if (missingFields.length > 0) {
+      throw new Error(`Field berikut wajib diisi: ${missingFields.join(', ')}`);
+    }
+  }
+
   public static async getAddress(userId: string) {
     return prisma.userAddress.findMany({
       where: { user_id: userId },
@@ -8,89 +42,9 @@ class UserAddressService {
     });
   }
 
-  public static async createAddress(userId: string, data: any) {
-  // Daftar field yang wajib diisi
-  const requiredFields = [
-    'name',
-    'phone',
-    'label',
-    'province',
-    'province_id',
-    'city',
-    'city_id',
-    'district',
-    'district_id',
-    'subdistrict',
-    'subdistrict_id',
-    'postal_code',
-    'street',
-  ];
+  public static async createAddress(userId: string, data: Partial<AddressData>) {
+    this.validateAddressData(data);
 
-  // Cek apakah ada field yang kosong/null/undefined
-  const missingFields = requiredFields.filter(
-    (field) => !data[field] && data[field] !== 0 // 0 dianggap valid
-  );
-
-  if (missingFields.length > 0) {
-    throw new Error(`Field berikut wajib diisi: ${missingFields.join(', ')}`);
-  }
-
-  // Update is_primary sebelumnya jadi false jika perlu
-  if (data.is_primary) {
-    await prisma.userAddress.updateMany({
-      where: { user_id: userId, is_primary: true },
-      data: { is_primary: false },
-    });
-  }
-
-  // Ekstrak data
-  const {
-    name,
-    phone,
-    label,
-    province,
-    province_id,
-    city,
-    city_id,
-    district,
-    district_id,
-    subdistrict,
-    subdistrict_id,
-    postal_code,
-    street,
-    detail,
-    latitude,
-    longitude,
-    is_primary,
-  } = data;
-
-  // Simpan data
-  return prisma.userAddress.create({
-    data: {
-      user_id: userId,
-      name,
-      phone,
-      label,
-      province,
-      province_id,
-      city,
-      city_id,
-      district,
-      district_id,
-      subdistrict,
-      subdistrict_id,
-      postal_code,
-      street,
-      detail,
-      latitude,
-      longitude,
-      is_primary: Boolean(is_primary),
-    },
-  });
-}
-
-
-  public static async updateAddress(userId: string, id: number, data: any) {
     if (data.is_primary) {
       await prisma.userAddress.updateMany({
         where: { user_id: userId, is_primary: true },
@@ -98,9 +52,55 @@ class UserAddressService {
       });
     }
 
+    const province_id = data.province_id !== undefined && data.province_id !== null ? String(data.province_id) : null;
+    const city_id = data.city_id !== undefined && data.city_id !== null ? String(data.city_id) : null;
+    const district_id = data.district_id !== undefined && data.district_id !== null ? String(data.district_id) : null;
+    const subdistrict_id = data.subdistrict_id !== undefined && data.subdistrict_id !== null ? String(data.subdistrict_id) : null;
+
+    return prisma.userAddress.create({
+      data: {
+        user_id: userId,
+        name: data.name!,
+        phone: data.phone!,
+        label: data.label!,
+        province: data.province!,
+        province_id,
+        city: data.city!,
+        city_id,
+        district: data.district!,
+        district_id,
+        subdistrict: data.subdistrict!,
+        subdistrict_id,
+        postal_code: data.postal_code!,
+        street: data.street!,
+        detail: data.detail ?? null,
+        latitude: data.latitude ?? null,
+        longitude: data.longitude ?? null,
+        is_primary: Boolean(data.is_primary),
+      },
+    });
+  }
+
+  public static async updateAddress(userId: string, id: number, data: Partial<AddressData>) {
+    if (data.is_primary) {
+      await prisma.userAddress.updateMany({
+        where: { user_id: userId, is_primary: true },
+        data: { is_primary: false },
+      });
+    }
+
+    const updateData = {
+      ...data,
+      province_id: data.province_id !== undefined && data.province_id !== null ? String(data.province_id) : null,
+      city_id: data.city_id !== undefined && data.city_id !== null ? String(data.city_id) : null,
+      district_id: data.district_id !== undefined && data.district_id !== null ? String(data.district_id) : null,
+      subdistrict_id: data.subdistrict_id !== undefined && data.subdistrict_id !== null ? String(data.subdistrict_id) : null,
+      is_primary: Boolean(data.is_primary),
+    };
+
     return prisma.userAddress.update({
       where: { id },
-      data: { ...data, is_primary: Boolean(data.is_primary) },
+      data: updateData,
     });
   }
 
