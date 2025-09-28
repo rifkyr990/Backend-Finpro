@@ -35,6 +35,7 @@ class UserAddressService {
     }
   }
 
+  // tampil alamat
   public static async getAddress(userId: string) {
     return prisma.userAddress.findMany({
       where: { user_id: userId },
@@ -42,6 +43,7 @@ class UserAddressService {
     });
   }
 
+  // buat alamat
   public static async createAddress(userId: string, data: Partial<AddressData>) {
     this.validateAddressData(data);
 
@@ -58,26 +60,7 @@ class UserAddressService {
     const subdistrict_id = data.subdistrict_id !== undefined && data.subdistrict_id !== null ? String(data.subdistrict_id) : null;
 
     return prisma.userAddress.create({
-      data: {
-        user_id: userId,
-        name: data.name!,
-        phone: data.phone!,
-        label: data.label!,
-        province: data.province!,
-        province_id,
-        city: data.city!,
-        city_id,
-        district: data.district!,
-        district_id,
-        subdistrict: data.subdistrict!,
-        subdistrict_id,
-        postal_code: data.postal_code!,
-        street: data.street!,
-        detail: data.detail ?? null,
-        latitude: data.latitude ?? null,
-        longitude: data.longitude ?? null,
-        is_primary: Boolean(data.is_primary),
-      },
+      data: { user_id: userId, name: data.name!, phone: data.phone!, label: data.label!, province: data.province!, province_id, city: data.city!,city_id, district: data.district!, district_id, subdistrict: data.subdistrict!, subdistrict_id, postal_code: data.postal_code!, street: data.street!, detail: data.detail ?? null, latitude: data.latitude ?? null, longitude: data.longitude ?? null, is_primary: Boolean(data.is_primary),},
     });
   }
 
