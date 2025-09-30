@@ -1,0 +1,1 @@
+{"version":3,"file":"NotificationEmailTemplate.d.ts","sourceRoot":"","sources":["../../src/templates/NotificationEmailTemplate.ts"],"names":[],"mappings":"AAAA,UAAU,WAAW;IACnB,KAAK,EAAE,MAAM,CAAC;IACd,OAAO,EAAE,MAAM,CAAC;IAChB,UAAU,EAAE,MAAM,CAAC;IACnB,SAAS,EAAE,MAAM,CAAC;CACnB;AAED,eAAO,MAAM,yBAAyB,GAAI,4CAKvC,WAAW,WAqGb,CAAC"}
