@@ -19,7 +19,7 @@ class UserController {
     } catch (error) {
       ApiResponse.error(res, "Error Get All Users Data", 400);
     }
-  };
+  }; // arco
   public static getUserById = async (req: Request, res: Response) => {
     try {
       const user_id = req.params.id?.toString();

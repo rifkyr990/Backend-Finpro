@@ -40,7 +40,7 @@ class AuthService {
 
     await sendEmail({
       to: user.email,
-      subject: "Verifikasi Email Anda - FreshCart",
+      subject: "Verifikasi Email Anda - Groceria",
       text: `Klik tautan berikut untuk memverifikasi email Anda: ${verificationUrl}`,
       html: verificationEmailTemplate(verificationUrl),
     });
@@ -112,7 +112,7 @@ class AuthService {
 
     await sendEmail({
       to: email,
-      subject: "Verifikasi Email Anda - FreshCart",
+      subject: "Verifikasi Email Anda - Groceria",
       text: `Klik tautan berikut untuk memverifikasi email Anda: ${verificationUrl}`,
       html: verificationEmailTemplate(verificationUrl),
     });
