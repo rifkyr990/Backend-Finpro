@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 
 // Extend Express Request
 export interface AuthRequest extends Request {
-    user?: { id: string; email: string; role: string };
+    user?: { id: string; email: string; role: string; store_id?: number | null };
 }
 
 export const authMiddleware = (roles: string[] = []) => {
@@ -21,7 +21,7 @@ export const authMiddleware = (roles: string[] = []) => {
             const decoded = jwt.verify(
                 token,
                 process.env.JWT_SECRET
-            ) as unknown as { id: string; email: string; role: string };
+            ) as unknown as { id: string; email: string; role: string; store_id?: number | null };
 
             req.user = decoded;
 

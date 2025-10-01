@@ -15,6 +15,7 @@ class RajaOngkirRoutes {
         this.router.get("/cities/:provinceId",RajaOngkirController.getCities);
         this.router.get("/districts/:cityId",RajaOngkirController.getDistricts);
         this.router.get("/subdistricts/:districtsId",RajaOngkirController.getSubdistricts);
+        this.router.post("/cost", RajaOngkirController.getShippingCost);
     }
 }
 

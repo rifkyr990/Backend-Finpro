@@ -1,0 +1,1121 @@
+diff --cc prisma/schema.prisma
+index 3856312,95c2ae2..0000000
+--- a/prisma/schema.prisma
++++ b/prisma/schema.prisma
+@@@ -29,63 -28,29 +28,89 @@@ enum OrderStatus 
+    CANCELLED
+    REFUNDED
+  }
+++<<<<<<< HEAD
+ +
+ +enum DiscountType {
+ +  MANUAL
+ +  MIN_PURCHASE
+ +  B1G1
+ +  FREE_ONGKIR
+ +}
+ +
+ +enum DiscountUsageStatus {
+ +  APPLIED
+ +  CANCELLED
+ +}
+ +
+ +enum ReferralUsageStatus {
+ +  PENDING
+ +  APPLIED
+ +  EXPIRED
+ +}
+ +
+ +enum StockHistoryType {
+ +  IN
+ +  OUT
+ +}
+ +
+ +enum PaymentStatus {
+ +  PENDING
+ +  SUCCESS
+ +  FAILED
+ +  REFUNDED
+ +}
+ +
+ +model User {
+ +  id          String   @id @default(uuid())
+ +  first_name  String
+ +  last_name   String
+ +  email       String   @unique
+ +  phone       String?
+ +  password    String?
+ +  role        Role     @default(CUSTOMER)
+ +  is_verified Boolean  @default(false)
+ +  image_url   String?
+ +  image_id    String?
+ +  created_at  DateTime @default(now())
+ +  updated_at  DateTime @updatedAt
+ +
+ +  socialLogins             SocialLogin[]
+ +  discountUsage            DiscountUsage[]
+ +  verificationTokens       VerificationToken[]
+ +  passwordResetTokens      PasswordResetToken[]
+ +  profile                  UserProfile?
+ +  addresses                UserAddress[]
+ +  cart                     Cart?
+ +  orders                   Order[]
+ +  referrals                Referral[]
+ +  referralUsagesAsReferrer ReferralUsage[]      @relation("Referrer")
+ +  referralUsagesAsReferee  ReferralUsage[]      @relation("Referee")
+ +  Admins                   Admins[]
+++=======
++ 
++ model User {
++   id               String @id @default(uuid())
++   first_name       String
++   last_name        String
++   email            String   @unique
++   phone            String?
++   password         String?
++   role             Role     @default(CUSTOMER)
++   is_verified      Boolean  @default(false)
++   image_url               String?
++   image_id                String?
++   store_id Int?
++   created_at       DateTime @default(now())
++   updated_at       DateTime @updatedAt
++   socialLogins        SocialLogin[]
++   verificationTokens  VerificationToken[]
++   passwordResetTokens PasswordResetToken[]
++   profile             UserProfile?
++   addresses           UserAddress[]
++   cart                Cart?
++   orders              Order[]
++   store Store? @relation(fields: [store_id], references: [id],onDelete: SetNull)
+++>>>>>>> origin/feature/add-validator
+  }
+  
+  model SocialLogin {
+@@@ -119,7 -84,7 +144,11 @@@ model PasswordResetToken 
+  
+  model UserProfile {
+    id            Int       @id @default(autoincrement())
+++<<<<<<< HEAD
+ +  user_id       String    @unique
+++=======
++   user_id       String       @unique
+++>>>>>>> origin/feature/add-validator
+    bio           String?
+    date_of_birth DateTime?
+  
+@@@ -127,29 -92,68 +156,78 @@@
+  }
+  
+  model UserAddress {
+ -  id           Int      @id @default(autoincrement())
+ -  user_id      String
+ -  name         String          // Nama penerima
+ -  phone        String          // Nomor telepon
+ -  label        String          // RUMAH | KANTOR
+ -  province     String
+ -  city         String
+ -  district     String          // Kecamatan
+ -  subdistrict  String?
+ -  postal_code  String
+ -  street       String          // Nama jalan
+ -  detail       String?         // Detail alamat (opsional)
+ -  latitude     Float?
+ -  longitude    Float?
+ -  is_primary   Boolean @default(false)
+ +  id          Int     @id @default(autoincrement())
+ +  user_id     String
+ +  name        String // Nama penerima
+ +  phone       String // Nomor telepon
+ +  label       String // RUMAH | KANTOR
+ +  province    String
+ +  city        String
+ +  district    String // Kecamatan
+ +  subdistrict String?
+ +  postal_code String
+ +  street      String // Nama jalan
+ +  detail      String? // Detail alamat (opsional)
+ +  latitude    Float?
+ +  longitude   Float?
+ +  is_primary  Boolean @default(false)
+ +
+++<<<<<<< HEAD
+ +  user          User            @relation(fields: [user_id], references: [id], onDelete: Cascade)
+ +  ShippingCosts ShippingCosts[]
+ +}
+  
+ +// =============================
+ +// Store & Product
+ +// =============================
+++=======
++   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
++ }
++ 
++ model Product {
++   id          Int      @id @default(autoincrement())
++   category_id Int
++   name        String
++   description String?
++   price       String
++   is_active   Boolean  @default(true)
++   created_at  DateTime @default(now())
++ 
++   cartItems  CartItem[]
++   orderItems OrderItem[]
++   stocks     ProductStocks[]
++   images     ProductImage[]
++   category ProductCategory @relation(fields: [category_id],references: [id], onDelete: Cascade)
++ }
++ 
++ model ProductImage {
++   id         Int      @id @default(autoincrement())
++   product_id Int
++   image_url  String
++   created_at DateTime @default(now())
++ 
++   product Product @relation(fields: [product_id], references: [id], onDelete: Cascade)
++ }
++ 
++ model ProductStocks {
++   id             Int @id @default(autoincrement())
++   store_id       Int
++   product_id     Int
++   stock_quantity Int @default(0)
++ 
++   store   Store   @relation(fields: [store_id], references: [id],onDelete: Cascade)
++   product Product @relation(fields: [product_id], references: [id],onDelete: Cascade)
++ 
++   @@unique([store_id, product_id])
++ }
++ 
++ model ProductCategory {
++   id Int @id @default(autoincrement())
++   category String
++   products Product[]
++ }
++ 
+++>>>>>>> origin/feature/add-validator
+  model Store {
+    id            Int      @id @default(autoincrement())
+    name          String
+@@@ -163,75 -167,15 +241,86 @@@
+    created_at    DateTime @default(now())
+    updated_at    DateTime @updatedAt
+  
+++<<<<<<< HEAD
+ +  orders        Order[]
+ +  cart          Cart[]
+ +  stocks        ProductStocks[]
+ +  banners       Banners[]
+ +  promotions    Promotions[]
+ +  discount      Discount[]
+ +  Admins        Admins[]
+ +  ShippingCosts ShippingCosts[]
+++=======
++   admins User[]
++   orders Order[]
++   cart   Cart[]
++   stocks ProductStocks[]
+++>>>>>>> origin/feature/add-validator
+ +}
+ +
+ +model Product {
+ +  id          String   @id @default(uuid())
+ +  category_id Int?
+ +  name        String
+ +  description String?
+ +  price       Decimal
+ +  is_active   Boolean  @default(true)
+ +  created_at  DateTime @default(now())
+ +
+ +  cartItems         CartItem[]
+ +  orderItems        OrderItem[]
+ +  stocks            ProductStocks[]
+ +  images            ProductImage[]
+ +  discounts         Discount[]
+ +  ProductCategory   ProductCategory? @relation(fields: [productCategoryId], references: [id])
+ +  productCategoryId Int?
+ +}
+ +
+ +model ProductImage {
+ +  id         Int      @id @default(autoincrement())
+ +  product_id String
+ +  image_url  String
+ +  created_at DateTime @default(now())
+ +
+ +  product Product @relation(fields: [product_id], references: [id], onDelete: Cascade)
+ +}
+ +
+ +model ProductStocks {
+ +  id             Int    @id @default(autoincrement())
+ +  store_id       Int
+ +  product_id     String
+ +  stock_quantity Int    @default(0)
+ +
+ +  store   Store          @relation(fields: [store_id], references: [id])
+ +  product Product        @relation(fields: [product_id], references: [id])
+ +  history StockHistory[]
+ +
+ +  @@unique([store_id, product_id])
+ +}
+ +
+ +model StockHistory {
+ +  id               Int              @id @default(autoincrement())
+ +  product_stock_id Int
+ +  type             StockHistoryType
+ +  quantity         Int
+ +  prevStock        Int
+ +  newestStock      Int
+ +  created_by       String
+ +  created_at       DateTime         @default(now())
+ +
+ +  productStock ProductStocks @relation(fields: [product_stock_id], references: [id])
+  }
+  
+ +// =============================
+ +// Cart & Order
+ +// =============================
+  model Cart {
+    id             Int      @id @default(autoincrement())
+++<<<<<<< HEAD
+ +  user_id        String   @unique
+++=======
++   user_id        String      @unique
+++>>>>>>> origin/feature/add-validator
+    store_id       Int
+    total_quantity Int      @default(0)
+    total_price    Decimal  @default(0.00)
+@@@ -244,13 -188,13 +333,13 @@@
+  }
+  
+  model CartItem {
+ -  id         Int @id @default(autoincrement())
+ +  id         Int    @id @default(autoincrement())
+    cart_id    Int
+ -  product_id Int
+ -  quantity   Int @default(1)
+ +  product_id String
+ +  quantity   Int    @default(1)
+  
+    cart    Cart    @relation(fields: [cart_id], references: [id], onDelete: Cascade)
+-   product Product @relation(fields: [product_id], references: [id])
++   product Product @relation(fields: [product_id], references: [id],onDelete: Cascade)
+  
+    @@unique([cart_id, product_id])
+  }
+@@@ -267,12 -211,11 +356,20 @@@ model Order 
+    created_at          DateTime @default(now())
+    updated_at          DateTime @updatedAt
+  
+++<<<<<<< HEAD
+ +  user          User            @relation(fields: [user_id], references: [id])
+ +  store         Store           @relation(fields: [store_id], references: [id])
+ +  orderStatus   OrderStatuses   @relation(fields: [order_status_id], references: [id])
+ +  orderItems    OrderItem[]
+ +  payments      Payment[]
+ +  DiscountUsage DiscountUsage[]
+++=======
++   user         User          @relation(fields: [user_id], references: [id],onDelete: Cascade)
++   store        Store         @relation(fields: [store_id], references: [id],onDelete: Cascade)
++   orderStatus  OrderStatuses @relation(fields: [order_status_id], references: [id],onDelete: Cascade)
++   orderItems   OrderItem[]
++   paymentProof PaymentProof?
+++>>>>>>> origin/feature/add-validator
+  }
+  
+  model OrderStatuses {
+@@@ -289,38 -232,12 +386,38 @@@ model OrderItem 
+    price_at_purchase Decimal
+  
+    order   Order   @relation(fields: [order_id], references: [id], onDelete: Cascade)
+-   product Product @relation(fields: [product_id], references: [id])
++   product Product @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  }
+  
+ +// =============================
+ +// Payment
+ +// =============================
+ +model PaymentMethod {
+ +  id   Int    @id @default(autoincrement())
+ +  name String
+ +  type String
+ +
+ +  payments Payment[]
+ +}
+ +
+ +model Payment {
+ +  id                String        @id @default(uuid())
+ +  order_id          Int
+ +  payment_method_id Int
+ +  amount            Decimal
+ +  status            PaymentStatus
+ +  transaction_id    String?
+ +  paid_at           DateTime?
+ +  created_at        DateTime      @default(now())
+ +
+ +  order         Order         @relation(fields: [order_id], references: [id])
+ +  paymentMethod PaymentMethod @relation(fields: [payment_method_id], references: [id])
+ +  proof         PaymentProof?
+ +}
+ +
+  model PaymentProof {
+    id         Int      @id @default(autoincrement())
+ -  order_id   Int      @unique
+ +  payment_id String   @unique
+    image_url  String
+    created_at DateTime @default(now())
+  
+diff --cc prisma/seed.ts
+index 2d511b5,82db336..0000000
+--- a/prisma/seed.ts
++++ b/prisma/seed.ts
+@@@ -1,240 -1,418 +1,627 @@@
+++<<<<<<< HEAD
+ +import { PrismaClient, Role, OrderStatus } from "@prisma/client";
+ +import { hashPassword } from "../src/utils/bcrypt";
+++=======
++ // prisma/seed.ts
++ import { faker } from "@faker-js/faker";
++ import {
++   PrismaClient,
++   Role,
++   OrderStatus,
++   User,
++   Prisma,
++   Store,
++   ProductCategory,
++   Product,
++ } from "@prisma/client";
+++>>>>>>> origin/feature/add-validator
+  
+  const prisma = new PrismaClient();
+  
+  async function main() {
++   // Clear existing db
++   console.log("Remove Existing Data");
++   await prisma.cartItem.deleteMany();
++   await prisma.cart.deleteMany();
++   await prisma.productStocks.deleteMany();
++   await prisma.productImage.deleteMany();
++   await prisma.product.deleteMany();
++   await prisma.productCategory.deleteMany();
++   await prisma.orderStatuses.deleteMany();
++   await prisma.user.deleteMany();
++   await prisma.store.deleteMany();
+    console.log("Seeding database...");
+++<<<<<<< HEAD
+ +
+ +  const customerId = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11";
+ +  const appleId = "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14";
+ +  const almondMilkId = "e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15";
+ +  const breadId = "f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16";
+ +
+ +  const hashedPassword = await hashPassword("Password123!");
+ +  const customer = await prisma.user.upsert({
+ +    where: { email: "customer@example.com" },
+ +    update: {},
+ +    create: {
+ +      id: customerId,
+ +      first_name: "John",
+ +      last_name: "Doe",
+ +      email: "customer@example.com",
+ +      password: hashedPassword,
+ +      role: Role.CUSTOMER,
+ +      is_verified: true,
+ +    },
+ +  });
+ +
+ +  await prisma.userAddress.upsert({
+ +    where: { id: 1 },
+ +    update: {
+ +      name: "John Doe",
+ +      phone: "081234567890",
+ +      label: "Home",
+ +      province: "DKI Jakarta",
+ +      city: "Jakarta Pusat",
+ +      district: "Gambir",
+ +      postal_code: "10110",
+ +      street: "Jl. Merdeka No. 123",
+ +      is_primary: true,
+ +    },
+ +    create: {
+ +      id: 1,
+ +      user_id: customer.id,
+ +      name: "John Doe",
+ +      phone: "081234567890",
+ +      label: "Home",
+ +      province: "DKI Jakarta",
+ +      city: "Jakarta Pusat",
+ +      district: "Gambir",
+ +      postal_code: "10110",
+ +      street: "Jl. Merdeka No. 123",
+ +      is_primary: true,
+ +    },
+ +  });
+ +
+ +  const storeJakarta = await prisma.store.upsert({
+ +    where: { id: 1 },
+ +    update: {},
+ +    create: {
+ +      id: 1,
+ +      name: "GrocerApp Jakarta",
+ +      address: "Jl. Jenderal Sudirman No.Kav. 52-53",
+ +      is_main_store: true,
+ +    },
+ +  });
+ +
+ +  const storeSurabaya = await prisma.store.upsert({
+ +    where: { id: 2 },
+ +    update: {},
+ +    create: {
+ +      id: 2,
+ +      name: "GrocerApp Surabaya",
+ +      address: "Jl. Basuki Rahmat No.8-12",
+ +    },
+ +  });
+ +
+ +  const apple = await prisma.product.upsert({
+ +    where: { id: appleId },
+ +    update: {},
+ +    create: {
+ +      id: appleId,
+ +      name: "Organic Fuji Apples",
+ +      description: "Pack of 6, freshly sourced from local farms",
+ +      price: 55000,
+ +    },
+ +  });
+ +
+ +  const almondMilk = await prisma.product.upsert({
+ +    where: { id: almondMilkId },
+ +    update: {},
+ +    create: {
+ +      id: almondMilkId,
+ +      name: "Almond Milk - Unsweetened",
+ +      description: "1L carton, dairy-free and vegan",
+ +      price: 32000,
+ +    },
+ +  });
+ +
+ +  const bread = await prisma.product.upsert({
+ +    where: { id: breadId },
+ +    update: {},
+ +    create: {
+ +      id: breadId,
+ +      name: "Whole Wheat Bread",
+ +      description: "400g loaf, soft and fresh-baked",
+ +      price: 28000,
+ +    },
+ +  });
+ +
+ +  const productsWithImages = [
+ +    {
+ +      product: apple,
+ +      imageUrl:
+ +        "https://images.unsplash.com/photo-1567306226416-28f0efdc88ce?w=500&q=80",
+ +    },
+ +    {
+ +      product: almondMilk,
+ +      imageUrl:
+ +        "https://images.unsplash.com/photo-1583337130417-b2df30b9e1b3?w=500&q=80",
+ +    },
+ +    {
+ +      product: bread,
+ +      imageUrl:
+ +        "https://images.unsplash.com/photo-1608198093002-ad4e005484b7?w=500&q=80",
+ +    },
+ +  ];
+ +
+ +  for (const item of productsWithImages) {
+ +    const existingImage = await prisma.productImage.findFirst({
+ +      where: { product_id: item.product.id },
+ +    });
+ +    if (!existingImage) {
+ +      await prisma.productImage.create({
+ +        data: { product_id: item.product.id, image_url: item.imageUrl },
+ +      });
+ +    }
+ +  }
+ +
+ +  await prisma.productStocks.upsert({
+ +    where: {
+ +      store_id_product_id: { store_id: storeJakarta.id, product_id: apple.id },
+ +    },
+ +    update: {},
+ +    create: {
+ +      store_id: storeJakarta.id,
+ +      product_id: apple.id,
+ +      stock_quantity: 100,
+ +    },
+ +  });
+ +  await prisma.productStocks.upsert({
+ +    where: {
+ +      store_id_product_id: {
+ +        store_id: storeJakarta.id,
+ +        product_id: almondMilk.id,
+++=======
++   // --- User Seeding ---
++   // const customer = await prisma.user.upsert({
++   //   where: { email: "customer@example.com" },
++   //   update: {},
++   //   create: {
++   //     // id: 1, // Explicitly set ID for stable relations
++   //     first_name: "John",
++   //     last_name: "Doe",
++   //     email: "customer@example.com",
++   //     password: "hashedpassword",
++   //     role: Role.CUSTOMER,
++ 
++   //   },
++   // });
++ 
++   // --USER SEEDING #2 (30 Dummy data) -- arco
++   const customers: User[] = [];
++ 
++   const roles = Object.values(Role) as Role[];
++   for (let i = 0; i < 30; i++) {
++     const firstName = faker.person.firstName();
++     const lastName = faker.person.lastName();
++ 
++     const addresses: Prisma.UserAddressCreateWithoutUserInput[] = [];
++     for (let i = 0; i < 3; i++) {
++       addresses.push({
++         name: faker.person.fullName(),
++         phone: faker.phone.number({ style: "international" }),
++         label: faker.helpers.arrayElement(["RUMAH", "KANTOR"]),
++         province: faker.location.state(),
++         city: faker.location.city(),
++         district: faker.location.county(),
++         postal_code: faker.location.zipCode(),
++         street: faker.location.streetAddress(),
++         latitude: faker.location.latitude(),
++         longitude: faker.location.longitude(),
++         is_primary: i === 0, // hanya alamat pertama sebagai primary
++       });
++     }
++ 
++     const email = faker.internet.email({ firstName, lastName });
++     const phoneNumber = faker.phone.number({ style: "international" });
++     const password = "test";
++     const image_url = faker.image.avatar();
++     const role = roles[Math.floor(Math.random() * roles.length)];
++     const isVerified = faker.datatype.boolean();
++ 
++     const createdUser = await prisma.user.create({
++       data: {
++         first_name: firstName,
++         last_name: lastName,
++         addresses: {
++           create: addresses,
++         },
++         email: email,
++         phone: phoneNumber,
++         password: password,
++         image_url: image_url,
++         role: role!,
++         is_verified: isVerified,
+++>>>>>>> origin/feature/add-validator
+        },
+-     },
+-     update: {},
+-     create: {
+-       store_id: storeJakarta.id,
+-       product_id: almondMilk.id,
+-       stock_quantity: 50,
+-     },
+-   });
+-   await prisma.productStocks.upsert({
+-     where: {
+-       store_id_product_id: { store_id: storeSurabaya.id, product_id: apple.id },
+-     },
+-     update: {},
+-     create: {
+-       store_id: storeSurabaya.id,
+-       product_id: apple.id,
+-       stock_quantity: 80,
+-     },
+-   });
+-   await prisma.productStocks.upsert({
+-     where: {
+-       store_id_product_id: { store_id: storeSurabaya.id, product_id: bread.id },
+-     },
+-     update: {},
+-     create: {
+-       store_id: storeSurabaya.id,
+-       product_id: bread.id,
+-       stock_quantity: 40,
+-     },
+-   });
++     });
++ 
++     customers.push(createdUser);
++   }
++ 
++   // --- STORE SEEDING ---
++   // const storeJakarta = await prisma.store.upsert({
++   //   where: { id: 1 },
++   //   update: {},
++   //   create: {
++   //     id: 1,
++   //     name: "GrocerApp Jakarta",
++   //     address: "Jl. Jenderal Sudirman No.Kav. 52-53",
++   //     latitude: -6.2246,
++   //     longitude: 106.8096,
++   //     is_main_store: true,
++   //   },
++   // });
++ 
++   // const storeSurabaya = await prisma.store.upsert({
++   //   where: { id: 2 },
++   //   update: {},
++   //   create: {
++   //     id: 2,
++   //     name: "GrocerApp Surabaya",
++   //     address: "Jl. Basuki Rahmat No.8-12",
++   //     latitude: -7.2665,
++   //     longitude: 112.7423,
++   //   },
++   // });
++   const stores: Store[] = [];
++   for (let i = 0; i < 10; i++) {
++     const storeName = faker.company.name();
++     const address = faker.location.streetAddress();
++     const province = faker.location.county();
++     const city = faker.location.city();
++     const latitude = faker.location.latitude();
++     const longitude = faker.location.longitude();
++     const isActive = faker.datatype.boolean();
++     const isMainStore = faker.datatype.boolean();
+  
++     const createdStore = await prisma.store.create({
++       data: {
++         name: storeName,
++         address: address,
++         province: province,
++         city: city,
++         latitude: latitude,
++         longitude: longitude,
++         is_active: isActive,
++         is_main_store: isMainStore,
++       },
++     });
++     stores.push(createdStore);
++   }
++   // ---STORE ADMIN SEEDING---
++   console.log("Seeding Store Admins");
++ 
++   for (const store of stores) {
++     const adminCount = faker.number.int({ min: 1, max: 5 });
++     const selectedUsers = faker.helpers.arrayElements(customers, adminCount);
++     for (const user of selectedUsers) {
++       // update role
++       await prisma.user.update({
++         where: { id: user.id },
++         data: {
++           store_id: store.id,
++           role: Role.STORE_ADMIN,
++         },
++       });
++     }
++   }
++ 
++   // --- PRODUCT AND PRODUCT IMAGE SEEDING ---
++   console.log("Seeding Product Category");
++   const categories = ["Fashion", "Teknologi", "Sports", "Hobby"];
++   type CategoryType = {
++     id: number;
++     category: string;
++   };
++   const createdCategories: CategoryType[] = [];
++   const createdProducts: Product[] = [];
++   for (const categoryName of categories) {
++     const category = await prisma.productCategory.create({
++       data: { category: categoryName },
++     });
++     createdCategories.push(category);
++   }
++   //
++ 
++   console.log("Seeding Product and Product Image");
++ 
++   for (let i = 0; i < 10; i++) {
++     const randomCategory = faker.helpers.arrayElement(createdCategories);
++ 
++     const product = await prisma.product.create({
++       data: {
++         name: faker.commerce.product(),
++         description: faker.commerce.productDescription(),
++         price: faker.commerce.price({
++           min: 10000,
++           max: 200000,
++         }),
++         is_active: faker.datatype.boolean(),
++         category_id: randomCategory.id,
++       },
++     });
++ 
++     createdProducts.push(product);
++ 
++     // image
++     const imageCount = faker.number.int({ min: 1, max: 4 });
++     for (let i = 0; i < imageCount; i++) {
++       await prisma.productImage.create({
++         data: {
++           product_id: product.id,
++           image_url: faker.image.urlPicsumPhotos({ width: 500, height: 300 }),
++         },
++       });
++     }
++ 
++     for (const store of stores) {
++       await prisma.productStocks.create({
++         data: {
++           store_id: store.id,
++           product_id: product.id,
++           stock_quantity: faker.number.int({ min: 0, max: 100 }),
++         },
++       });
++     }
++   }
++   //
++ 
++   // const apple = await prisma.product.upsert({
++   //   where: { id: 1 },
++   //   update: {},
++   //   create: {
++   //     id: 1,
++   //     name: "Organic Fuji Apples",
++   //     description: "Pack of 6, freshly sourced from local farms",
++   //     price: 55000,
++   //   },
++   // });
++   // await prisma.productImage.upsert({
++   //   where: { id: 1 },
++   //   update: {},
++   //   create: {
++   //     id: 1,
++   //     product_id: apple.id,
++   //     image_url:
++   //       "https://images.unsplash.com/photo-1567306226416-28f0efdc88ce?w=500&q=80",
++   //   },
++   // });
++ 
++   // const almondMilk = await prisma.product.upsert({
++   //   where: { id: 2 },
++   //   update: {},
++   //   create: {
++   //     id: 2,
++   //     name: "Almond Milk - Unsweetened",
++   //     description: "1L carton, dairy-free and vegan",
++   //     price: 32000,
++   //   },
++   // });
++   // await prisma.productImage.upsert({
++   //   where: { id: 2 },
++   //   update: {},
++   //   create: {
++   //     id: 2,
++   //     product_id: almondMilk.id,
++   //     image_url:
++   //       "https://images.unsplash.com/photo-1583337130417-b2df30b9e1b3?w=500&q=80",
++   //   },
++   // });
++ 
++   // const bread = await prisma.product.upsert({
++   //   where: { id: 3 },
++   //   update: {},
++   //   create: {
++   //     id: 3,
++   //     name: "Whole Wheat Bread",
++   //     description: "400g loaf, soft and fresh-baked",
++   //     price: 28000,
++   //   },
++   // });
++   // await prisma.productImage.upsert({
++   //   where: { id: 3 },
++   //   update: {},
++   //   create: {
++   //     id: 3,
++   //     product_id: bread.id,
++   //     image_url:
++   //       "https://images.unsplash.com/photo-1608198093002-ad4e005484b7?w=500&q=80",
++   //   },
++   // });
++ 
++   // --- PRODUCT STOCK SEEDING ---
++   // const storeCount = faker.number.int({ min: 1, max: stores.length });
++   // const selectedStores = faker.helpers.arrayElements(stores, storeCount);
++ 
++   // for (const product of createdProducts) {
++   //   for (const store of selectedStores) {
++   //     await prisma.productStocks.create({
++   //       data: {
++   //         store_id: store.id,
++   //         product_id: product.id,
++   //         stock_quantity: faker.number.int({ min: 0, max: 100 }),
++   //       },
++   //     });
++   //   }
++   // }
++ 
++   // await prisma.productStocks.upsert({
++   //   where: {
++   //     store_id_product_id: { store_id: storeJakarta.id, product_id: apple.id },
++   //   },
++   //   update: {},
++   //   create: {
++   //     store_id: storeJakarta.id,
++   //     product_id: apple.id,
++   //     stock_quantity: 100,
++   //   },
++   // });
++   // await prisma.productStocks.upsert({
++   //   where: {
++   //     store_id_product_id: {
++   //       store_id: storeJakarta.id,
++   //       product_id: almondMilk.id,
++   //     },
++   //   },
++   //   update: {},
++   //   create: {
++   //     store_id: storeJakarta.id,
++   //     product_id: almondMilk.id,
++   //     stock_quantity: 50,
++   //   },
++   // });
++   // await prisma.productStocks.upsert({
++   //   where: {
++   //     store_id_product_id: { store_id: storeSurabaya.id, product_id: apple.id },
++   //   },
++   //   update: {},
++   //   create: {
++   //     store_id: storeSurabaya.id,
++   //     product_id: apple.id,
++   //     stock_quantity: 80,
++   //   },
++   // });
++   // await prisma.productStocks.upsert({
++   //   where: {
++   //     store_id_product_id: { store_id: storeSurabaya.id, product_id: bread.id },
++   //   },
++   //   update: {},
++   //   create: {
++   //     store_id: storeSurabaya.id,
++   //     product_id: bread.id,
++   //     stock_quantity: 40,
++   //   },
++   // });
++ 
+++<<<<<<< HEAD
+ +  const statuses = [
+ +    { id: 1, status: OrderStatus.PENDING_PAYMENT },
+ +    { id: 2, status: OrderStatus.PAID },
+ +    { id: 3, status: OrderStatus.PROCESSING },
+ +    { id: 4, status: OrderStatus.SHIPPED },
+ +    { id: 5, status: OrderStatus.DELIVERED },
+ +    { id: 6, status: OrderStatus.CANCELLED },
+ +    { id: 7, status: OrderStatus.REFUNDED },
+ +  ];
+ +  for (const s of statuses) {
+ +    await prisma.orderStatuses.upsert({
+ +      where: { id: s.id },
+ +      update: {},
+ +      create: s,
+ +    });
+ +  }
+ +
+ +  await prisma.paymentMethod.upsert({
+ +    where: { id: 1 },
+ +    update: {},
+ +    create: { id: 1, name: "Manual Bank Transfer", type: "MANUAL" },
+ +  });
+ +  await prisma.paymentMethod.upsert({
+ +    where: { id: 2 },
+ +    update: {},
+ +    create: { id: 2, name: "Payment Gateway", type: "GATEWAY" },
+ +  });
+++=======
++   // --- Order Statuses Seeding ---
++   // await Promise.all(
++   //   Object.values(OrderStatus).map((status) =>
++   //     prisma.orderStatuses.upsert({
++   //       where: { status },
++   //       update: {},
++   //       create: { status },
++   //     })
++   //   )
++   // );
+++>>>>>>> origin/feature/add-validator
+  
+ -  // --- CART SEEDING ---
+    console.log("Seeding cart for default customer...");
+++<<<<<<< HEAD
+ +  const customerCart = await prisma.cart.upsert({
+ +    where: { user_id: customer.id },
+ +    update: { store_id: storeJakarta.id },
+ +    create: { user_id: customer.id, store_id: storeJakarta.id },
+ +  });
+ +
+ +  await prisma.cartItem.deleteMany({ where: { cart_id: customerCart.id } });
+ +
+ +  await prisma.cartItem.create({
+ +    data: { cart_id: customerCart.id, product_id: apple.id, quantity: 2 },
+ +  });
+ +  await prisma.cartItem.create({
+ +    data: { cart_id: customerCart.id, product_id: almondMilk.id, quantity: 1 },
+ +  });
+ +
+ +  const totalQuantity = 2 + 1;
+ +  const totalPrice = Number(apple.price) * 2 + Number(almondMilk.price) * 1;
+ +  await prisma.cart.update({
+ +    where: { id: customerCart.id },
+ +    data: { total_quantity: totalQuantity, total_price: totalPrice },
+ +  });
+++=======
++   // const customer = customers.find(
++   //   (customer) => customer.role === Role.CUSTOMER
++   // );
++ 
++   // if (customer) {
++   //   // customer cart
++   //   const customerCart = await prisma.cart.upsert({
++   //     where: { user_id: customer.id },
++   //     update: {},
++   //     create: {
++   //       user_id: customer.id,
++   //       store_id: storeJakarta.id,
++   //     },
++   //   });
++   //   //
++   //   await prisma.cartItem.upsert({
++   //     where: {
++   //       cart_id_product_id: { cart_id: customerCart.id, product_id: apple.id },
++   //     },
++   //     update: { quantity: 2 },
++   //     create: {
++   //       cart_id: customerCart.id,
++   //       product_id: apple.id,
++   //       quantity: 2,
++   //     },
++   //   });
++   //   //
++   //   await prisma.cartItem.upsert({
++   //     where: {
++   //       cart_id_product_id: {
++   //         cart_id: customerCart.id,
++   //         product_id: almondMilk.id,
++   //       },
++   //     },
++   //     update: { quantity: 1 },
++   //     create: {
++   //       cart_id: customerCart.id,
++   //       product_id: almondMilk.id,
++   //       quantity: 1,
++   //     },
++   //   });
++   //   //
++   //   const totalQuantity = 2 + 1;
++   //   const totalPrice = Number(apple.price) * 2 + Number(almondMilk.price) * 1;
++ 
++   //   await prisma.cart.update({
++   //     where: { id: customerCart.id },
++   //     data: {
++   //       total_quantity: totalQuantity,
++   //       total_price: totalPrice,
++   //     },
++   //   });
++   // }
+++>>>>>>> origin/feature/add-validator
+  
+    console.log("Seeding completed!");
+  }
+diff --cc src/app.ts
+index c3b54bf,bfdf50f..0000000
+--- a/src/app.ts
++++ b/src/app.ts
+@@@ -7,8 -8,8 +7,13 @@@ import UserAddressRoutes from "./routes
+  import RajaOngkirRoutes from "./routes/RajaOngkirRoutes";
+  import { ApiResponse } from "./utils/ApiResponse";
+  import CartRoutes from "./routes/CartRoutes";
+++<<<<<<< HEAD
+ +import OrderRoutes from "./routes/OrderRoutes";
+ +import ShippingRoutes from "./routes/ShippingRoutes";
+++=======
++ import StoreRoutes from "./routes/StoreRoutes";
++ import ProductRoutes from "./routes/ProductRoutes";
+++>>>>>>> origin/feature/add-validator
+  
+  dotenv.config();
+  
+@@@ -31,42 -32,34 +36,63 @@@ class App 
+      this.app.use(express.urlencoded({ extended: true }));
+    }
+  
+++<<<<<<< HEAD
+ +  private initializeRoutes() {
+ +    this.app.use("/api/auth", AuthRoutes);
+ +    this.app.use("/api/user", UserRoutes);
+ +    this.app.use("/api/address", UserAddressRoutes);
+ +    this.app.use("/api/rajaongkir", RajaOngkirRoutes);
+ +    this.app.use("/api/cart", CartRoutes);
+ +    this.app.use("/api/orders", OrderRoutes);
+ +    this.app.use("/api/shipping", ShippingRoutes);
+ +    this.app.get("/", (req, res) => {
+ +      return ApiResponse.success(res, null, "API is running 🚀");
+ +    });
+ +  }
+ +
+ +  private initializeErrorHandler() {
+ +    this.app.use(
+ +      (
+ +        err: Error,
+ +        req: express.Request,
+ +        res: express.Response,
+ +        next: express.NextFunction
+ +      ) => {
+ +        console.error("Error Middleware:", err);
+ +        return ApiResponse.error(
+ +          res,
+ +          err.message || "Internal Server Error",
+ +          500
+++=======
++     private initializeRoutes() {
++         this.app.use("/api/auth", AuthRoutes);
++         this.app.use("/api/user", UserRoutes);
++         this.app.use("/api/cart", CartRoutes);
++         this.app.use("/api/user", UserRoutes);
++         this.app.use("/api/store", StoreRoutes);
++         this.app.use("/api/product", ProductRoutes);
++         this.app.use("/api/address", UserAddressRoutes);
++         this.app.use("/api/rajaongkir", RajaOngkirRoutes)
++         this.app.get("/", (req, res) => {
++             return ApiResponse.success(res, null, "API is running 🚀");
++         });
++     }
++ 
++     private initializeErrorHandler() {
++         this.app.use(
++             (err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
++                 console.error("Error Middleware:", err);
++                 return ApiResponse.error(res, err.message || "Internal Server Error", 500);
++             }
+++>>>>>>> origin/feature/add-validator
+          );
+-       }
+-     );
+-   }
++     }
+  
+-   public listen() {
+-     this.app.listen(this.port, () => {
+-       console.log(`🚀 Server running on http://localhost:${this.port}`);
+-     });
+-   }
++     public listen() {
++         this.app.listen(this.port, () => {
++         console.log(`🚀 Server running on http://localhost:${this.port}`);
++         });
++     }
+  }
+  
+  export default App;
+* Unmerged path prisma/migrations/20250908033527_init/migration.sql

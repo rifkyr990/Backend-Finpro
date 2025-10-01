@@ -16,7 +16,6 @@ class AuthController {
         }
 
         const { user } = await AuthService.register(first_name, last_name, email);
-
         return ApiResponse.success(res, { email: user.email },"Registrasi berhasil, silakan cek email untuk verifikasi",201);
     });
 
@@ -27,10 +26,19 @@ class AuthController {
         if (!token || !password) {
             return ApiResponse.error(res, "Token dan password wajib diisi", 400);
         }
-        await AuthService.verifyEmailAndSetPassword(token, password);
 
-        return ApiResponse.success(res, null, "Verifikasi berhasil, silakan login");
+        if (password.length < 8) {
+            return ApiResponse.error(res, "Password minimal 8 karakter", 400);
+        }
+
+        try {
+            await AuthService.verifyEmailAndSetPassword(token, password);
+            return ApiResponse.success(res, null, "Verifikasi berhasil, silakan login");
+        } catch (error: any) {
+            return ApiResponse.error(res, error.message || "Terjadi kesalahan", 400);
+        }
     });
+
 
     // LOGIN DENGAN VALIDASI VERIFIKASI
     public static login = asyncHandler(async (req: Request, res: Response) => {
@@ -49,6 +57,15 @@ class AuthController {
         console.log("ini req: body", req.body);
         const { email } = req.body;
         const result = await AuthService.resendVerification(email);
+
+        return ApiResponse.success(res, result, "Verifikasi email berhasil dikirim ulang");
+    })
+
+    // KIRIM ULANG VERIFIKASI EMAIL
+    public static resendRegistVerification = asyncHandler(async (req: Request, res: Response) => {
+        console.log("ini req: body", req.body);
+        const { email } = req.body;
+        const result = await AuthService.resendRegistVerification(email);
 
         return ApiResponse.success(res, result, "Verifikasi email berhasil dikirim ulang");
     })
