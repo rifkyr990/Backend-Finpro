@@ -15,13 +15,13 @@ declare class UserService {
         updated_at: Date;
         is_deleted: boolean;
     }>;
-    getProfile(userId: string): Promise<({
+    getProfile(userId: string): Promise<{
         profile: {
             id: number;
             user_id: string;
             bio: string | null;
             date_of_birth: Date | null;
-        } | null;
+        };
     } & {
         id: string;
         email: string;
@@ -37,7 +37,7 @@ declare class UserService {
         created_at: Date;
         updated_at: Date;
         is_deleted: boolean;
-    }) | null>;
+    }>;
     private buildProfileUpdateData;
     updateProfile(userId: string, data: any): Promise<{
         profile: {
@@ -45,7 +45,7 @@ declare class UserService {
             user_id: string;
             bio: string | null;
             date_of_birth: Date | null;
-        } | null;
+        };
     } & {
         id: string;
         email: string;

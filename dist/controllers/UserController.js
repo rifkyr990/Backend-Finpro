@@ -24,7 +24,7 @@ UserController.getAllUsers = async (req, res) => {
     catch (error) {
         ApiResponse_1.ApiResponse.error(res, "Error Get All Users Data", 400);
     }
-};
+}; // arco
 UserController.getUserById = async (req, res) => {
     try {
         const user_id = req.params.id?.toString();

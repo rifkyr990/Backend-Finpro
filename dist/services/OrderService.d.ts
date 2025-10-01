@@ -31,8 +31,8 @@ declare class OrderService {
         shippingCost: string;
         discountAmount: string;
         destinationAddress: {
-            name: string | undefined;
-            phone: string | null;
+            name: string;
+            phone: string;
             fullAddress: string;
         };
         store: {
@@ -43,7 +43,7 @@ declare class OrderService {
         payment: {
             method: string;
             status: import(".prisma/client").$Enums.PaymentStatus;
-        } | null;
+        };
         items: {
             id: number;
             quantity: number;
@@ -70,7 +70,7 @@ declare class OrderService {
             totalPrice: string;
             status: import(".prisma/client").$Enums.OrderStatus;
             totalItems: number;
-            firstProductImage: string | null;
+            firstProductImage: string;
         }[];
         pagination: {
             currentPage: number;

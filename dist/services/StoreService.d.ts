@@ -36,7 +36,7 @@ declare class StoreService {
         id: string;
         first_name: string;
         last_name: string;
-        phone: string | null;
+        phone: string;
         role: import(".prisma/client").$Enums.Role;
     }[]>;
     static getStoreAdminsWithStore(): Promise<{
@@ -46,7 +46,7 @@ declare class StoreService {
             id: string;
             first_name: string;
             last_name: string;
-            phone: string | null;
+            phone: string;
             role: import(".prisma/client").$Enums.Role;
         }[];
     }[]>;
@@ -65,7 +65,7 @@ declare class StoreService {
         created_at: Date;
         updated_at: Date;
         is_deleted: boolean;
-    } | null>;
+    }>;
     static createStoreAdmin(data: {
         first_name: string;
         last_name: string;
@@ -105,7 +105,7 @@ declare class StoreService {
         is_active: boolean;
         is_main_store: boolean;
     }>;
-    static createStore(payload: any): Promise<({
+    static createStore(payload: any): Promise<{
         admins: {
             id: string;
             first_name: string;
@@ -127,7 +127,7 @@ declare class StoreService {
         longitude: number | null;
         is_active: boolean;
         is_main_store: boolean;
-    }) | null>;
+    }>;
     static updateStore(storeId: number, payload: any): Promise<{
         name: string;
         id: number;

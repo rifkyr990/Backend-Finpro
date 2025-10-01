@@ -40,7 +40,7 @@ class AuthService {
         const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
         await (0, email_1.sendEmail)({
             to: user.email,
-            subject: "Verifikasi Email Anda - FreshCart",
+            subject: "Verifikasi Email Anda - Groceria",
             text: `Klik tautan berikut untuk memverifikasi email Anda: ${verificationUrl}`,
             html: (0, VerificationEmail_1.verificationEmailTemplate)(verificationUrl),
         });
@@ -96,7 +96,7 @@ class AuthService {
         const verificationUrl = `${process.env.FRONTEND_URL}${path}?token=${token}`;
         await (0, email_1.sendEmail)({
             to: email,
-            subject: "Verifikasi Email Anda - FreshCart",
+            subject: "Verifikasi Email Anda - Groceria",
             text: `Klik tautan berikut untuk memverifikasi email Anda: ${verificationUrl}`,
             html: (0, VerificationEmail_1.verificationEmailTemplate)(verificationUrl),
         });

@@ -37,7 +37,7 @@ declare class UserDataService {
             longitude: number | null;
             is_active: boolean;
             is_main_store: boolean;
-        } | null;
+        };
     } & {
         id: string;
         email: string;
@@ -66,7 +66,7 @@ declare class UserDataService {
         image_id: string | null;
         store_id: number | null;
         is_deleted: boolean;
-    } | null>;
+    }>;
     static getAllCustomers: (query: CustomerQueryParams) => Promise<{
         data: ({
             addresses: {

@@ -16,7 +16,7 @@ export declare class UserOrderReads {
             totalPrice: string;
             status: import(".prisma/client").$Enums.OrderStatus;
             totalItems: number;
-            firstProductImage: string | null;
+            firstProductImage: string;
         }[];
         pagination: {
             currentPage: number;
@@ -97,6 +97,7 @@ export declare class UserOrderReads {
                 is_deleted: boolean;
                 product_id: number | null;
                 description: string | null;
+                createdAt: Date;
                 type: import(".prisma/client").$Enums.DiscountType;
                 code: string;
                 minPurch: Prisma.Decimal | null;
@@ -106,7 +107,6 @@ export declare class UserOrderReads {
                 valueType: import(".prisma/client").$Enums.ValueType | null;
                 start_date: Date;
                 end_date: Date;
-                createdAt: Date;
                 createdBy: string;
             };
         } & {
