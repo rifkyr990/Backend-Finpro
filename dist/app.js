@@ -36,7 +36,6 @@ class App {
             credentials: true, // jika pakai cookie/auth header
             methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
         }));
-        this.app.options('*', (0, cors_1.default)());
         this.app.use(express_1.default.json());
         this.app.use(express_1.default.urlencoded({ extended: true }));
     }
