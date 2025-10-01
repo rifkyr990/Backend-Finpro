@@ -29,7 +29,7 @@ declare class AuthService {
         user: {
             store: {
                 name: string;
-            } | null;
+            };
         } & {
             id: string;
             email: string;

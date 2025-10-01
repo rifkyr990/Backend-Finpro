@@ -2,22 +2,22 @@ declare class DiscountService {
     static getAllDiscount: () => Promise<{
         name: string;
         id: number;
-        store_id: number | null;
+        store_id: number;
         store: {
             name: string;
             id: number;
-        } | null;
-        product_id: number | null;
+        };
+        product_id: number;
         product: {
             name: string;
-        } | null;
-        description: string | null;
+        };
+        description: string;
         type: import(".prisma/client").$Enums.DiscountType;
         code: string;
-        minPurch: import("@prisma/client/runtime/library").Decimal | null;
-        minQty: number | null;
-        freeQty: number | null;
-        discAmount: import("@prisma/client/runtime/library").Decimal | null;
+        minPurch: import("@prisma/client/runtime/library").Decimal;
+        minQty: number;
+        freeQty: number;
+        discAmount: import("@prisma/client/runtime/library").Decimal;
         start_date: Date;
         end_date: Date;
         creator: {
@@ -25,7 +25,7 @@ declare class DiscountService {
             last_name: string;
         };
         usage: {
-            user_id: string | null;
+            user_id: string;
         }[];
     }[]>;
     static softDeleteDiscount: (discount_id: number) => Promise<{
@@ -35,6 +35,7 @@ declare class DiscountService {
         is_deleted: boolean;
         product_id: number | null;
         description: string | null;
+        createdAt: Date;
         type: import(".prisma/client").$Enums.DiscountType;
         code: string;
         minPurch: import("@prisma/client/runtime/library").Decimal | null;
@@ -44,7 +45,6 @@ declare class DiscountService {
         valueType: import(".prisma/client").$Enums.ValueType | null;
         start_date: Date;
         end_date: Date;
-        createdAt: Date;
         createdBy: string;
     }>;
     static createDiscount: (data: any) => Promise<{
@@ -54,6 +54,7 @@ declare class DiscountService {
         is_deleted: boolean;
         product_id: number | null;
         description: string | null;
+        createdAt: Date;
         type: import(".prisma/client").$Enums.DiscountType;
         code: string;
         minPurch: import("@prisma/client/runtime/library").Decimal | null;
@@ -63,7 +64,6 @@ declare class DiscountService {
         valueType: import(".prisma/client").$Enums.ValueType | null;
         start_date: Date;
         end_date: Date;
-        createdAt: Date;
         createdBy: string;
     }>;
 }

@@ -52,7 +52,7 @@ declare class StockService {
         created_by: {
             first_name: string;
             last_name: string;
-        } | null;
+        };
         productStock: {
             store: {
                 name: string;

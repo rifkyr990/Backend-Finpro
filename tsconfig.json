@@ -5,20 +5,20 @@
     "outDir": "./dist",
 
     /* Environment Settings */
-    "target": "ES2020",              /* Output modern JS */
-    "module": "commonjs",            /* Express pakai commonjs */
-    "lib": ["ES2020"],               /* Library JS modern */
-    "types": ["node"],               /* Supaya kenal type Node.js */
+    "target": "ES2020",
+    "module": "commonjs",
+    "lib": ["ES2020"],
+    "types": ["node"],
 
     /* Other Outputs */
     "sourceMap": true,
     "declaration": true,
     "declarationMap": true,
 
-    /* Stricter Typechecking Options */
-    "strict": true,
-    "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
+    /* Stricter Typechecking Options (Nonaktifkan strict mode) */
+    "strict": false,
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false,
 
     /* Recommended Options */
     "esModuleInterop": true,

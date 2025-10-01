@@ -112,7 +112,7 @@ declare class ProductService {
         page: number;
         totalPages: number;
     }>;
-    static getProductById: (productId: number) => Promise<({
+    static getProductById: (productId: number) => Promise<{
         stocks: {
             store: {
                 name: string;
@@ -152,7 +152,7 @@ declare class ProductService {
         category_id: number;
         description: string | null;
         price: string;
-    }) | null>;
+    }>;
     static softDeleteProducts: (productIds: number[]) => Promise<import(".prisma/client").Prisma.BatchPayload>;
     static changeProductStatus: (productId: number, status: boolean) => Promise<{
         name: string;

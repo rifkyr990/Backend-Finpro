@@ -27,9 +27,9 @@ declare class AdminOrderService {
         createdAt: Date;
         status: import(".prisma/client").$Enums.OrderStatus;
         customer: {
-            name: string | undefined;
+            name: string;
             email: string;
-            phone: string | null;
+            phone: string;
         };
         store: {
             name: string;
@@ -40,7 +40,7 @@ declare class AdminOrderService {
         payment: {
             method: string;
             status: string;
-            proofUrl: string | null;
+            proofUrl: string;
         };
         pricing: {
             subtotal: string;
