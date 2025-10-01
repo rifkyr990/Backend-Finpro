@@ -33,7 +33,12 @@ class App {
   }
 
   private initializeMiddlewares() {
-    this.app.use(cors());
+    this.app.use(cors({
+      origin: 'https://groceria.vercel.app', // whitelist origin production
+      credentials: true, // jika pakai cookie/auth header
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    }));
+    this.app.options('*', cors());
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
   }
