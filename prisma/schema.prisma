@@ -16,7 +16,6 @@ enum Role {
 enum Provider {
   GOOGLE
   FACEBOOK
-  TWITTER
 }
 
 enum OrderStatus {
@@ -377,14 +376,11 @@ model Discount {
   code        String
   description String?
   type        DiscountType
-  // isFreeShipping   Boolean      @default(false)
   minPurch    Decimal?
   minQty      Int?
   freeQty     Int?
   discAmount  Decimal?
   valueType   ValueType?
-  // maxUsage_perUser Int?
-  // maxUsage Int
   start_date  DateTime
   end_date    DateTime
   is_deleted  Boolean      @default(false)

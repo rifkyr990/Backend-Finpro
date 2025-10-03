@@ -54,7 +54,7 @@ class ShippingService {
         const addrLon = address.longitude;
         const distance = (0, GeoUtils_1.getDistance)(storeLat, storeLon, addrLat, addrLon);
         if (distance > 30)
-            return { success: false, message: `Shipping address is too far from store (${distance.toFixed(2)} km > 30 km)`, };
+            return { success: false, message: `Alamat pengiriman terlalu jauh, jarak alamat anda dan toko (${distance.toFixed(2)} km > 30 km)`, };
         return { success: true };
     }
 }
