@@ -70,7 +70,7 @@ declare class OrderService {
             totalPrice: string;
             status: import(".prisma/client").$Enums.OrderStatus;
             totalItems: number;
-            firstProductImage: string;
+            firstProductImage: string | null;
         }[];
         pagination: {
             currentPage: number;
