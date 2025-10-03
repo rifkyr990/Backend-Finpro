@@ -1,7 +1,7 @@
 {  "crons": [
     {
       "path": "/api/cron/cancel-unpaid-orders",
-      "schedule": "0 * * * *"
+      "schedule": "0 1 * * *"
     }
   ],
     "version": 2,
