@@ -132,7 +132,7 @@ class OrderService {
         totalPrice: totalPrice,
         finalAppliedDiscount,
       });
-    });
+    }, {timeout : 20000});
   }
   public static async getOrderById(userId: string, orderId: number) {
     const order = await UserOrderReads.getFullOrderDetail(userId, orderId);

@@ -37,9 +37,15 @@ export declare class OrderMappers {
         createdAt: Date;
         status: import(".prisma/client").$Enums.OrderStatus;
         customer: {
+<<<<<<< HEAD
             name: string;
             email: string;
             phone: string;
+=======
+            name: string | undefined;
+            email: string;
+            phone: string | null;
+>>>>>>> origin/temporary-3
         };
         store: {
             name: string;
@@ -50,7 +56,11 @@ export declare class OrderMappers {
         payment: {
             method: string;
             status: string;
+<<<<<<< HEAD
             proofUrl: string;
+=======
+            proofUrl: string | null;
+>>>>>>> origin/temporary-3
         };
         pricing: {
             subtotal: string;
@@ -74,8 +84,13 @@ export declare class OrderMappers {
         shippingCost: string;
         discountAmount: string;
         destinationAddress: {
+<<<<<<< HEAD
             name: string;
             phone: string;
+=======
+            name: string | undefined;
+            phone: string | null;
+>>>>>>> origin/temporary-3
             fullAddress: string;
         };
         store: {
@@ -86,7 +101,11 @@ export declare class OrderMappers {
         payment: {
             method: string;
             status: import(".prisma/client").$Enums.PaymentStatus;
+<<<<<<< HEAD
         };
+=======
+        } | null;
+>>>>>>> origin/temporary-3
         items: {
             id: number;
             quantity: number;
