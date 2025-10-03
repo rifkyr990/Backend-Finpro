@@ -7,5 +7,5 @@ const server = new App(PORT);
 server.listen();
 
 // Cron job hanya jalan kalau di lokal / VPS
-CronService.startOrderCancellationJob();
-CronService.startOrderAutoConfirmationJob();
+// CronService.startOrderCancellationJob();
+// CronService.startOrderAutoConfirmationJob();
