@@ -4,3 +4,4 @@ node_modules
 NOTES.md
 
 /src/generated/prisma
+.vercel
