@@ -122,25 +122,26 @@ class ProductController {
               where: {
                 store: { province },
               },
-              select: {
-                stock_quantity: true,
-                store: {
-                  select: {
-                    admins: {
-                      select: {
-                        phone: true,
+select: {
+                  stock_quantity: true,
+                  store: {
+                    select: {
+                      id: true,
+                      admins: {
+                        select: {
+                          phone: true,
+                        },
                       },
+                      address: true,
+                      city: true,
+                      is_active: true,
+                      latitude: true,
+                      longitude: true,
+                      name: true,
+                      province: true,
                     },
-                    address: true,
-                    city: true,
-                    is_active: true,
-                    latitude: true,
-                    longitude: true,
-                    name: true,
-                    province: true,
                   },
                 },
-              },
             },
           },
         });
