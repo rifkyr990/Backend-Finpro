@@ -42,12 +42,12 @@ class DiscountController {
 
   public static verifyDiscount = asyncHandler(
     async (req: Request, res: Response) => {
-      const { code, subtotal, items } = req.body;
+      const { code, subtotal, items, storeId } = req.body;
 
-      if (!code || subtotal === undefined || !items) {
+      if (!code || subtotal === undefined || !items || !storeId) {
         return ApiResponse.error(
           res,
-          "Code, subtotal, and cart items are required",
+          "Code, subtotal, items, and storeId are required",
           400
         );
       }
@@ -61,6 +61,7 @@ class DiscountController {
           is_deleted: false,
           start_date: { lte: new Date() },
           end_date: { gte: new Date() },
+          OR: [{ store_id: null }, { store_id: storeId }],
         },
       });
 

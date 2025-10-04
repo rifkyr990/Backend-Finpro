@@ -83,6 +83,7 @@ class OrderService {
             is_deleted: false,
             start_date: { lte: new Date() },
             end_date: { gte: new Date() },
+            OR: [{ store_id: null }, { store_id: storeId }],
           },
         });
         if (foundDiscount) {

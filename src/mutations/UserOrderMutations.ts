@@ -123,14 +123,32 @@ export class UserOrderMutations {
         data: { order_status_id: cancelledStatus.id },
       });
       for (const item of order.orderItems) {
-        await tx.productStocks.update({
+        const stock = await tx.productStocks.findUniqueOrThrow({
           where: {
             store_id_product_id: {
               store_id: order.store_id,
               product_id: item.product_id,
             },
           },
-          data: { stock_quantity: { increment: item.quantity } },
+        });
+        const newStock = stock.stock_quantity + item.quantity;
+        await tx.productStocks.update({
+          where: { id: stock.id },
+          data: { stock_quantity: newStock },
+        });
+        await tx.stockHistory.create({
+          data: {
+            type: "IN",
+            quantity: item.quantity,
+            prev_stock: stock.stock_quantity,
+            updated_stock: newStock,
+            min_stock: stock.min_stock,
+            reason: `Order #${order.id} cancelled by user`,
+            order_id: order.id,
+            productStockId: stock.id,
+            user_id: userId,
+            created_by_name: "System",
+          },
         });
       }
       await tx.discountUsage.updateMany({
