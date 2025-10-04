@@ -46,6 +46,10 @@ export class OrderMappers {
     const recipientPhone =
       order.destination_address.match(/\(([^)]+)\)/)?.[1] || null;
 
+    const b1g1Discount = order.DiscountUsage?.find(
+      (usage) => usage.discount.type === "B1G1"
+    )?.discount;
+
     return {
       id: order.id,
       createdAt: order.created_at,
@@ -78,6 +82,7 @@ export class OrderMappers {
         quantity: item.quantity,
         price: item.price_at_purchase.toString(),
         imageUrl: item.product.images[0]?.image_url || "/fallback.png",
+        isB1G1Item: b1g1Discount?.product_id === item.product_id,
       })),
     };
   }
@@ -89,7 +94,12 @@ export class OrderMappers {
     const fullAddress =
       order.destination_address.split("), ")[1] || order.destination_address;
 
+    const b1g1Discount = order.DiscountUsage.find(
+      (usage) => usage.discount.type === "B1G1"
+    )?.discount;
+
     return {
+      isB1G1Order: !!b1g1Discount,
       id: order.id,
       createdAt: order.created_at,
       totalPrice: order.total_price.toString(),
@@ -112,6 +122,7 @@ export class OrderMappers {
       items: order.orderItems.map((item) => ({
         id: item.id,
         quantity: item.quantity,
+        isB1G1Item: b1g1Discount?.product_id === item.product_id,
         priceAtPurchase: item.price_at_purchase.toString(),
         product: {
           id: item.product.id,

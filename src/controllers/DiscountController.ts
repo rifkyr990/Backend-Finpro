@@ -103,26 +103,15 @@ class DiscountController {
       }
 
       let discountValue = 0;
-      let frontendPromoType: "percentage" | "fixed" | "free_shipping" = "fixed";
+      let frontendPromoType: "percentage" | "fixed" | "free_shipping" | "b1g1" =
+        "fixed";
 
       if (discount.type === "FREE_ONGKIR") {
         frontendPromoType = "free_shipping";
         discountValue = 0;
       } else if (discount.type === "B1G1") {
-        frontendPromoType = "fixed";
-        if (discount.product_id) {
-          const product = await prisma.product.findUnique({
-            where: { id: discount.product_id },
-          });
-          const targetItem = items.find(
-            (item: any) => item.productId === discount.product_id
-          );
-
-          // B1G1 logic: if the required item exists, the discount is its price.
-          if (product && targetItem && targetItem.quantity >= 1) {
-            discountValue = Number(product.price);
-          }
-        }
+        frontendPromoType = "b1g1";
+        discountValue = 0; // B1G1 is not a monetary discount, it's about quantity
       } else if (
         discount.discAmount &&
         (discount.type === "MANUAL" || discount.type === "MIN_PURCHASE")
@@ -141,6 +130,7 @@ class DiscountController {
         description: discount.description || "",
         type: frontendPromoType,
         value: discountValue,
+        productId: discount.product_id,
       };
 
       ApiResponse.success(
