@@ -16,7 +16,7 @@ class ReportController {
         where: {
           order: {
             orderStatus: {
-              status: "SHIPPED",
+              status: { in: ["SHIPPED", "DELIVERED"] },
             },
           },
           created_at: {
@@ -88,7 +88,7 @@ class ReportController {
         where: {
           order: {
             orderStatus: {
-              status: "SHIPPED",
+              status: { in: ["SHIPPED", "DELIVERED"] },
             },
           },
           created_at: { gte: startDate, lte: endDate },
