@@ -74,10 +74,37 @@ class DiscountController {
       }
 
       // Check if product-specific discount is valid for the cart items
-      if (
-        (discount.type === "MANUAL" || discount.type === "B1G1") &&
-        discount.product_id
-      ) {
+      if (discount.type === "B1G1" && discount.product_id) {
+        const requiredItem = items.find(
+          (item: any) => item.productId === discount.product_id
+        );
+        if (!requiredItem) {
+          return ApiResponse.error(
+            res,
+            "Required product for this promo is not in your cart.",
+            400
+          );
+        }
+
+        const stock = await prisma.productStocks.findUnique({
+          where: {
+            store_id_product_id: {
+              store_id: storeId,
+              product_id: discount.product_id,
+            },
+          },
+          select: { stock_quantity: true },
+        });
+
+        const availableStock = stock?.stock_quantity ?? 0;
+        if (requiredItem.quantity * 2 > availableStock) {
+          return ApiResponse.error(
+            res,
+            `Cannot apply B1G1: Not enough stock for the free item. Only ${availableStock} total units available.`,
+            400
+          );
+        }
+      } else if (discount.type === "MANUAL" && discount.product_id) {
         const requiredItem = items.find(
           (item: any) => item.productId === discount.product_id
         );
