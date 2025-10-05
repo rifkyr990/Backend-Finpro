@@ -36,6 +36,11 @@ class PaymentController {
             },
           },
           payments: true,
+          DiscountUsage: {
+            include: {
+              discount: true,
+            },
+          },
         },
       });
 
@@ -51,13 +56,37 @@ class PaymentController {
           404
         );
       }
+      
+      const b1g1Discount = order.DiscountUsage?.find(
+        (d) => d.discount.type === "B1G1"
+      )?.discount;
 
-      const item_details = order.orderItems.map((item) => ({
-        id: item.product_id.toString(),
-        price: Math.round(Number(item.price_at_purchase)),
-        quantity: item.quantity,
-        name: item.product.name.substring(0, 50),
-      }));
+      const item_details = order.orderItems.flatMap((item) => {
+        if (b1g1Discount && item.product_id === b1g1Discount.product_id) {
+          const paidQty = item.quantity / 2;
+          const freeQty = item.quantity / 2;
+          return [
+            {
+              id: item.product_id.toString(),
+              price: Math.round(Number(item.price_at_purchase)),
+              quantity: paidQty,
+              name: item.product.name.substring(0, 50),
+            },
+            {
+              id: `${item.product_id}-free`,
+              price: 0,
+              quantity: freeQty,
+              name: `[FREE] ${item.product.name.substring(0, 40)}`,
+            },
+          ];
+        }
+        return {
+          id: item.product_id.toString(),
+          price: Math.round(Number(item.price_at_purchase)),
+          quantity: item.quantity,
+          name: item.product.name.substring(0, 50),
+        };
+      });
 
       if (Number(order.shipping_cost) > 0) {
         item_details.push({
