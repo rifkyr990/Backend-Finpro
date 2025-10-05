@@ -25,7 +25,13 @@ class CartController {
           cartItems: {
             include: {
               product: {
-                include: { images: { take: 1 } },
+                include: {
+                  images: { take: 1 },
+                  stocks: {
+                    where: { store_id: { equals: req.user.store_id ?? undefined } },
+                    select: { stock_quantity: true },
+                  },
+                },
               },
             },
             orderBy: { id: "asc" },
@@ -33,6 +39,24 @@ class CartController {
           store: true,
         },
       });
+
+      if (cart) {
+        // Since the above `where` on stocks might not work in a nested include,
+        // we'll ensure we get the right stock for the cart's store.
+        const cartStoreId = cart.store_id;
+        for (const item of cart.cartItems) {
+          const stock = await prisma.productStocks.findUnique({
+            where: {
+              store_id_product_id: {
+                store_id: cartStoreId,
+                product_id: item.product_id,
+              },
+            },
+            select: { stock_quantity: true },
+          });
+          (item.product as any).stocks = [stock || { stock_quantity: 0 }];
+        }
+      }
 
       if (!cart) {
         return ApiResponse.success(
@@ -59,6 +83,7 @@ class CartController {
             imageUrl:
               item.product.images[0]?.image_url ||
               "https://placehold.co/400x400/png",
+            stock: (item.product as any).stocks[0]?.stock_quantity ?? 0,
           },
         })),
       };
